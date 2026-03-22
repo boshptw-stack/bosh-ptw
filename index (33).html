@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1E3A6E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BOSH PTW">
+<meta name="application-name" content="BOSH PTW">
+<title>PTW System — Bosh Engineering</title>
+<link rel="manifest" id="pwa-manifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&amp;family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:14px}
+:root{
+  --bg:#F0F2F5;--bg-card:#FFFFFF;--bg-card2:#F5F7FA;
+  --border:#D0D8E4;--border-light:#B8C6D8;
+  --orange:#1E3A6E;--orange-glow:rgba(30,58,110,0.10);
+  --primary:#1E3A6E;--primary-light:#2952A3;--primary-dark:#152D55;
+  --text:#1A2740;--text-muted:#4A5E7A;--text-dim:#8A9DB8;
+  --success:#16A34A;--warning:#D97706;--danger:#DC2626;
+  --info:#2563EB;--purple:#7C3AED;--teal:#0D9488;
+  --radius:8px;--shadow:0 2px 16px rgba(30,58,110,0.12);
+}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.02em}
+.page{display:none;min-height:100vh;flex-direction:column}
+.page.active{display:flex}
+#page-login{align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(30,58,110,.08) 0%,transparent 60%),var(--bg);padding:20px}
+.login-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:44px 36px;width:100%;max-width:420px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--primary-light))}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo h1{font-size:26px;color:var(--text);letter-spacing:.08em}
+.login-logo p{color:var(--text-muted);font-size:12px;margin-top:4px}
+.demo-hint{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);text-align:center;line-height:1.8}
+.form-group{margin-bottom:18px}
+label{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,58,110,0.1)}
+select option{background:#FFFFFF}
+textarea{resize:vertical;min-height:72px}
+input[type=datetime-local]{color-scheme:light}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:var(--radius);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border:none;cursor:pointer;transition:all .2s;text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-light);transform:translateY(-1px)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--text-muted)}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--warning);color:#000}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-lg{padding:13px 28px;font-size:15px;width:100%;justify-content:center}
+.app-header{background:#1E3A6E;border-bottom:1px solid #152D55;padding:0 22px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-name{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:.06em;color:#fff!important}
+.header-right{display:flex;align-items:center;gap:12px}
+.user-chip{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 12px 5px 6px;font-size:13px}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:#fff}
+.role-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.app-content{flex:1;padding:22px;max-width:1160px;width:100%;margin:0 auto}
+.page-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+.page-title h2{font-size:24px}
+.page-title .subtitle{font-size:12px;color:var(--text-muted);margin-top:2px;font-weight:400}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:26px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
+.stat-num{font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;line-height:1;margin-bottom:3px}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.stat-accent{position:absolute;bottom:0;left:0;height:3px;width:100%}
+.stat-total .stat-num{color:var(--primary)}.stat-total .stat-accent{background:var(--primary)}
+.stat-pending .stat-num{color:var(--warning)}.stat-pending .stat-accent{background:var(--warning)}
+.stat-active .stat-num{color:var(--success)}.stat-active .stat-accent{background:var(--success)}
+.stat-closed .stat-num{color:var(--text-muted)}.stat-closed .stat-accent{background:var(--text-muted)}
+.stat-rejected .stat-num{color:var(--danger)}.stat-rejected .stat-accent{background:var(--danger)}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.section-header h3{font-size:15px;font-weight:700}
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap}
+.filter-btn{padding:4px 13px;border-radius:18px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.05em}
+.filter-btn.active,.filter-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--orange-glow)}
+.expiry-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:rgba(220,38,38,.12);color:#DC2626;border:1px solid rgba(220,38,38,.3);margin-top:3px}
+.expiry-soon{background:rgba(217,119,6,.12);color:#D97706;border-color:rgba(217,119,6,.3)}
+.ptw-list{display:flex;flex-direction:column;gap:9px}
+.ptw-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:15px 20px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;cursor:pointer;transition:all .2s}
+.ptw-card:hover{border-color:var(--primary);background:#F0F4FA;transform:translateX(3px)}
+.ptw-type-badge{width:46px;height:46px;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;flex-shrink:0;line-height:1.2}
+.type-GEN{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.3);color:#3B82F6}
+.type-HW{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.3);color:#EF4444}
+.type-WAH{background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.3);color:#22C55E}
+.type-CS{background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#A855F7}
+.type-LW{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.3);color:#F59E0B}
+.type-EXC{background:rgba(20,184,166,.14);border:1px solid rgba(20,184,166,.3);color:#14B8A6}
+.ptw-ref{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700}
+.ptw-meta{font-size:11px;color:var(--text-muted);margin-top:3px}
+.ptw-meta span{margin-right:10px}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.status-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.status-draft{background:rgba(107,114,128,.14);color:#9CA3AF;border:1px solid rgba(107,114,128,.3)}
+.status-pending_tic{background:rgba(59,130,246,.14);color:#60A5FA;border:1px solid rgba(59,130,246,.3)}
+.status-pending_ehs{background:rgba(168,85,247,.14);color:#C084FC;border:1px solid rgba(168,85,247,.3)}
+.status-pending_pm{background:rgba(20,184,166,.14);color:#2DD4BF;border:1px solid rgba(20,184,166,.3)}
+.status-active{background:rgba(34,197,94,.14);color:#4ADE80;border:1px solid rgba(34,197,94,.3)}
+.status-closed{background:rgba(107,114,128,.14);color:#9CA3AF;border:1px solid rgba(107,114,128,.3)}
+.status-rejected{background:rgba(239,68,68,.14);color:#F87171;border:1px solid rgba(239,68,68,.3)}
+.ptw-detail-header{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:18px}
+.ref-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.ref-num{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--primary)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.detail-field label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.detail-field .value{font-size:13px;color:var(--text);font-weight:500}
+.workflow-timeline{display:flex;align-items:flex-start;gap:0;padding:8px 0;overflow-x:auto}
+.wf-step{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:110px;position:relative}
+.wf-step:not(:last-child)::after{content:'';position:absolute;top:18px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2px;background:var(--border);z-index:0}
+.wf-step.done:not(:last-child)::after{background:var(--success)}
+.wf-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;border:2px solid var(--border);background:var(--bg-card);position:relative;z-index:1;transition:all .3s}
+.wf-step.done .wf-dot{background:var(--success);border-color:var(--success);color:#fff}
+.wf-step.current .wf-dot{background:rgba(30,58,110,0.1);border-color:var(--primary);color:var(--primary);box-shadow:0 0 12px rgba(30,58,110,0.15)}
+.wf-step.pending .wf-dot{color:var(--text-dim)}
+.wf-label{font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);text-align:center;line-height:1.3}
+.wf-step.done .wf-label{color:var(--success)}
+.wf-step.current .wf-label{color:var(--primary)}
+.wf-time{font-size:9px;color:var(--text-dim);text-align:center}
+.stage-section{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin-bottom:12px}
+.stage-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.step-num{width:22px;height:22px;background:rgba(30,58,110,0.1);border:1px solid var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--primary)}
+.sig-box{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:14px}
+.sig-img{width:90px;height:44px;background:rgba(255,255,255,.04);border-radius:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.sig-img img{max-width:100%;max-height:100%;object-fit:contain}
+.sig-info .sig-name{font-weight:600;font-size:14px}
+.sig-info .sig-email{font-size:12px;color:var(--text-muted)}
+.sig-info .sig-time{font-size:11px;color:var(--text-dim);margin-top:2px}
+.sig-info .sig-remarks{font-size:12px;color:var(--warning);margin-top:4px}
+.checklist-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.checklist-table th{background:#EEF3F8;padding:9px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.checklist-table td{padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+.checklist-table tr:last-child td{border-bottom:none}
+.check-options{display:flex;gap:10px}
+.check-opt{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;padding:3px 8px;border-radius:4px;border:1px solid transparent;transition:all .15s}
+.check-opt:has(input:checked){background:var(--orange-glow);border-color:rgba(244,98,31,.3)}
+.check-opt input[type=radio]{cursor:pointer;accent-color:var(--orange)}
+.modal-overlay{position:fixed;inset:0;background:rgba(30,50,80,.55);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.active{display:flex}
+.modal-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:26px;width:100%;max-width:500px;box-shadow:var(--shadow)}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:9px}
+#sig-canvas{width:100%;height:160px;background:#fff;border-radius:7px;cursor:crosshair;display:block;touch-action:none}
+.canvas-hint{text-align:center;font-size:11px;color:var(--text-muted);margin-top:7px}
+.form-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:14px}
+.form-card h3{font-size:15px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);color:var(--primary);display:flex;align-items:center;gap:8px}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.declaration-box{background:rgba(30,58,110,.05);border:1px solid rgba(30,58,110,.18);border-radius:var(--radius);padding:14px;font-size:12px;color:var(--text-muted);line-height:1.75;margin-bottom:14px}
+.alert{padding:11px 14px;border-radius:var(--radius);font-size:12.5px;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.alert-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#60A5FA}
+.alert-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#4ADE80}
+.alert-warning{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#FCD34D}
+.alert-danger{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#F87171}
+.worker-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+.add-row-btn{background:rgba(30,58,110,.07);border:1px dashed rgba(30,58,110,.35);color:var(--primary);padding:8px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;width:100%;text-align:center;transition:all .2s;margin-top:7px}
+.add-row-btn:hover{background:rgba(244,98,31,.22)}
+.remove-btn{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#EF4444;padding:8px 12px;border-radius:var(--radius);cursor:pointer;font-size:18px;line-height:1}
+.back-link{display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:12px;cursor:pointer;margin-bottom:14px;transition:color .2s;background:none;border:none;padding:0;font-family:'Barlow',sans-serif}
+.back-link:hover{color:var(--text)}
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast-item{background:#FFFFFF;border:1px solid var(--border);border-radius:var(--radius);padding:11px 15px;font-size:12.5px;box-shadow:var(--shadow);animation:slideIn .3s ease;min-width:230px}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+.empty-state{text-align:center;padding:56px 20px;color:var(--text-muted)}
+.empty-state h3{font-size:19px;color:var(--text);margin-bottom:7px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#E8EEF4}
+::-webkit-scrollbar-thumb{background:#B0C4D8;border-radius:3px}
+.new-type-item-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:7px}
+.type-card{background:#F7FAFC;border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.type-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.app-header .btn-outline{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff}
+.app-header .btn-outline:hover{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.4)}
+.app-header .back-link{color:rgba(255,255,255,0.8)}
+.app-header .user-chip{color:#fff}
+.app-header .user-name{color:#fff}
+#action-panel-anchor .form-card{position:relative}
+@media(max-width:768px){
+  .app-content{padding:10px}
+  .app-header{padding:0 12px;height:52px}
+  .brand-name{font-size:16px}
+  .header-right .user-name{display:none}
+  .header-right{gap:6px}
+  .user-chip{padding:4px 8px 4px 4px}
+  .btn-outline.btn-sm{padding:5px 9px;font-size:11px}
+  .login-card{padding:24px 16px;margin:10px}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+  .stat-card{padding:14px 12px}
+  .stat-num{font-size:30px}
+  .ptw-card{grid-template-columns:auto 1fr;gap:10px;padding:12px}
+  .ptw-type-badge{width:38px;height:38px;font-size:11px}
+  .ptw-ref{font-size:13px}
+  .filter-bar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .filter-bar::-webkit-scrollbar{display:none}
+  .filter-btn{white-space:nowrap;flex-shrink:0}
+  .section-header{flex-direction:column;align-items:flex-start;gap:8px}
+  .form-row{grid-template-columns:1fr}
+  .worker-row{grid-template-columns:1fr;gap:6px}
+  .form-card{padding:14px}
+  .workflow-timeline{overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+  .wf-step{min-width:68px}
+  .wf-dot{width:32px;height:32px;font-size:11px}
+  .detail-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .stage-section{padding:12px}
+  .sig-box{flex-direction:column;gap:8px;align-items:flex-start}
+  .sig-img{width:100%;height:50px}
+  .checklist-table{font-size:11px;display:block;overflow-x:auto}
+  .page-title{flex-direction:column;align-items:flex-start;gap:8px}
+  .page-title h2{font-size:20px}
+  .page-title .btn{width:100%;justify-content:center}
+  .btn-lg{padding:12px 20px;font-size:14px}
+  .modal-card{padding:18px 14px;margin:10px}
+  .back-link{margin-bottom:10px;font-size:11px}
+  #toast{bottom:12px;right:12px;left:12px}
+  .toast-item{font-size:12px;min-width:0}
+  #action-panel-anchor{position:sticky;bottom:0;z-index:100;background:var(--bg);padding:8px 14px;box-shadow:0 -4px 16px rgba(30,58,110,0.12);border-top:2px solid var(--primary);margin:0 -14px}
+  #action-panel-anchor .form-card{margin-bottom:0;border-radius:0;border-left:none;border-right:none;border-bottom:none}
+  #filter-row{flex-direction:column!important;gap:8px!important}
+  #filter-row>div{min-width:0!important;width:100%!important}
+  input[type="date"]{-webkit-appearance:none!important;appearance:none!important;background:#fff!important;color:var(--text)!important;font-size:13px!important;padding:8px 10px!important}
+}
+@media(max-width:380px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat-num{font-size:26px}
+  .app-content{padding:8px}
+  .detail-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN PAGE ===== -->
+<div id="page-login" class="page">
+<div class="login-card">
+  <div class="login-logo">
+    <h1 style="font-size:28px;color:var(--primary);margin-bottom:4px">🏗 BOSH PTW</h1>
+    <h2 style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:4px">Permit To Work System</h2>
+    <p>Bosh Engineering Pte. Ltd.</p>
+  </div>
+  <div class="form-group">
+    <label>Email Address</label>
+    <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter')login()">
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <div style="position:relative">
+      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false" style="padding-right:48px" onkeydown="if(event.key==='Enter')login()">
+      <button type="button" onclick="togglePw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted);padding:4px;line-height:1" id="pw-eye">👁</button>
+    </div>
+  </div>
+  <div id="login-main-panel">
+    <div id="login-error" class="alert alert-danger" style="display:none"></div>
+    <button class="btn btn-primary btn-lg" onclick="login()">Sign In →</button>
+    <div class="demo-hint">Login with your registered email &amp; password.<br>Contact your Administrator if you need an account.</div>
+  </div>
+</div>
+</div>
+
+<!-- ===== DASHBOARD PAGE ===== -->
+<div id="page-dashboard" class="page">
+  <div id="app-header-dash"></div>
+  <div class="app-content"><div id="dashboard-content"></div></div>
+</div>
+
+<!-- ===== NEW PTW PAGE ===== -->
+<div id="page-new-ptw" class="page">
+  <div id="app-header-new"></div>
+  <div class="app-content">
+    <button class="back-link" onclick="showPage('dashboard')">← Back to Dashboard</button>
+    <div id="new-ptw-content"></div>
+  </div>
+</div>
+
+<!-- ===== VIEW PTW PAGE ===== -->
+<div id="page-view-ptw" class="page">
+  <div id="app-header-view"></div>
+  <div class="app-content">
+    <button class="back-link" onclick="showPage('dashboard')">← Back to Dashboard</button>
+    <div id="view-ptw-content"></div>
+  </div>
+</div>
+
+<!-- ===== ADMIN PAGE ===== -->
+<div id="page-admin" class="page">
+  <div id="app-header-admin"></div>
+  <div class="app-content">
+    <button class="back-link" onclick="showPage('dashboard')">← Back to Dashboard</button>
+    <div id="admin-content"></div>
+  </div>
+</div>
+
+<!-- ===== REPORTS PAGE ===== -->
+<div id="page-reports" class="page">
+  <div id="app-header-reports"></div>
+  <div class="app-content">
+    <button class="back-link" onclick="showPage('dashboard')">← Back to Dashboard</button>
+    <div id="reports-content"></div>
+  </div>
+</div>
+
+<!-- ===== SIGNATURE MODAL ===== -->
+<div id="sig-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-title">✍️ Digital Signature</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:11px">Draw your signature. Use mouse or finger touch.</p>
+    <canvas id="sig-canvas" width="450" height="160"></canvas>
+    <div class="canvas-hint">Sign above — click Clear to redo</div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-outline" onclick="clearSig()">Clear</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveSig()">Save Signature ✓</button>
+      <button class="btn btn-outline" onclick="closeModal('sig-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REJECT MODAL ===== -->
+<div id="reject-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-title" style="color:var(--danger)">⚠ Reject PTW</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Provide reason. Supervisor will be notified.</p>
+    <div class="form-group">
+      <label>Rejection Reason *</label>
+      <textarea id="reject-reason" rows="4" placeholder="Explain why this PTW is rejected..."></textarea>
+    </div>
+    <div style="display:flex;gap:9px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('reject-modal')">Cancel</button>
+      <button class="btn btn-danger" style="flex:1" onclick="confirmReject()">Confirm Reject</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+const APP_CONFIG = {
+  company: 'Bosh Engineering Pte. Ltd.',
+  prefix: 'BOSH-PTW',
+  sheetsURL: 'https://script.google.com/macros/s/AKfycbyTeL6CEWxMZIKoh9IZy94LAikhE-HufEXxPHvA_yz-Uvw7_gTfsTW-6HKIbrqHIOfseQ/exec',
+  blogURL: 'https://boshptw2026.blogspot.com',
+};
+
+// ================================================================
+// PROJECT DATABASE
+// ================================================================
+const DEFAULT_PROJECTS = [
+  {id:'proj1', name:'CCS-CHECC-BOSH JV - Keppel CCS Tengah', code:'KCT', client:'Keppel', location:'Tengah', status:'active', projectAdminId:'', createdAt:new Date().toISOString()},
+];
+const PDB = {
+  getAll(){try{const s=localStorage.getItem('ptw_projects');return s?JSON.parse(s):DEFAULT_PROJECTS;}catch{return DEFAULT_PROJECTS;}},
+  save(p){localStorage.setItem('ptw_projects',JSON.stringify(p));},
+  add(p){const all=this.getAll();p.id='proj'+Date.now();p.createdAt=new Date().toISOString();all.push(p);this.save(all);return p;},
+  update(id,data){const all=this.getAll();const i=all.findIndex(p=>p.id===id);if(i>=0){all[i]={...all[i],...data};this.save(all);}},
+  remove(id){this.save(this.getAll().filter(p=>p.id!==id));},
+  getById(id){return this.getAll().find(p=>p.id===id);},
+  getForUser(uid,role,email){
+    if(role==='admin') return this.getAll();
+    if(role==='project_admin') return this.getAll().filter(p=>p.projectAdminId===uid);
+    const u=UDB.getAll().find(u=>u.email===email);
+    if(!u||!u.projects) return this.getAll();
+    return this.getAll().filter(p=>u.projects?.includes(p.id));
+  }
+};
+
+// ================================================================
+// USER DATABASE
+// ================================================================
+const DEFAULT_USERS = [
+  {id:'u1',name:'Admin',email:'boshptw@gmail.com',role:'admin',company:'Bosh Engineering Pte. Ltd.',password:'admin123',active:true,phone:'',wakey:''},
+  {id:'u2',name:'Vela',email:'anbulive8@gmail.com',role:'supervisor',company:'Self',password:'Anbu1989',active:true,phone:'6591234567',wakey:''},
+  {id:'u3',name:'Anbu',email:'anbarasu@bosh.sg',role:'tic',company:'Bosh Engineering Pte. Ltd.',password:'Raja1989',active:true,phone:'6591234568',wakey:''},
+  {id:'u4',name:'Subsa',email:'anbulkc@gmail.com',role:'ehs',company:'Bosh Engineering Pte. Ltd.',password:'Subsh1989',active:true,phone:'6591234569',wakey:''},
+  {id:'u5',name:'Kalee',email:'tamilastro916@gmail.com',role:'pm',company:'Bosh Engineering Pte. Ltd.',password:'Anbu123',active:true,phone:'6591234570',wakey:''},
+  {id:'u6',name:'pandi',email:'2025bosh@gmail.com',role:'pm',company:'Bosh Engineering Pte. Ltd.',password:'Raja123',active:true,phone:'',wakey:''},
+  {id:'u7',name:'samy',email:'boseblock7@gmail.com',role:'supervisor',company:'Bosh Engineering Pte. Ltd.',password:'Samy123',active:true,phone:'',wakey:''},
+];
+const UDB = {
+  _cache:null,_cacheTime:0,CACHE_MS:60000,
+  getAll(){
+    try{
+      if(this._cache&&(Date.now()-this._cacheTime)<this.CACHE_MS) return this._cache;
+      const s=localStorage.getItem('ptw_users_gs');
+      if(s){const u=JSON.parse(s);if(u&&u.length>0){this._cache=u;this._cacheTime=Date.now();return u;}}
+    }catch(e){}
+    return DEFAULT_USERS;
+  },
+  loadFromSheets(){
+    try{
+      const cached=localStorage.getItem('ptw_users_gs');
+      if(cached){try{const u=JSON.parse(cached);if(u&&u.length>0){this._cache=u;this._cacheTime=Date.now();}}catch(e){}}
+      const s=document.createElement('script');
+      s.src=APP_CONFIG.sheetsURL+'?action=getUsers&t='+Date.now()+'&callback=__udbLoaded';
+      window.__udbLoaded=(data)=>{
+        if(Array.isArray(data)&&data.length>0){
+          const local=this._cache||[];
+          data.forEach(u=>{const loc=local.find(l=>l.id===u.id);if(!u.defaultSig&&loc&&loc.defaultSig)u.defaultSig=loc.defaultSig;});
+          localStorage.setItem('ptw_users_gs',JSON.stringify(data));
+          this._cache=data;this._cacheTime=Date.now();
+          console.log('Users loaded from Sheets:',data.length);
+        }
+        try{document.head.removeChild(s);}catch(e){}
+        delete window.__udbLoaded;
+      };
+      s.onerror=()=>{try{document.head.removeChild(s);}catch(e){}};
+      document.head.appendChild(s);
+    }catch(e){console.warn('User sync failed:',e);}
+  },
+  _syncUser(action,payload){
+    try{
+      ['__us_if','__us_fm'].forEach(i=>{const e=document.getElementById(i);if(e)e.remove();});
+      const iframe=document.createElement('iframe');iframe.id='__us_if';iframe.name='__us_if';iframe.style.display='none';
+      document.body.appendChild(iframe);
+      const form=document.createElement('form');form.id='__us_fm';form.method='POST';
+      form.action=APP_CONFIG.sheetsURL;form.target='__us_if';form.style.display='none';
+      const inp=document.createElement('input');inp.type='hidden';inp.name='data';
+      inp.value=JSON.stringify({action,...payload});
+      form.appendChild(inp);document.body.appendChild(form);form.submit();
+      this._cache=null;
+    }catch(e){console.warn('User sync error:',e);}
+  },
+  save(users){localStorage.setItem('ptw_users_gs',JSON.stringify(users));this._cache=users;this._cacheTime=Date.now();},
+  getByRole(role){return this.getAll().filter(u=>u.role===role&&u.active!==false);},
+  findByEmail(email){return this.getAll().find(u=>u.email===email);},
+  add(u){const users=this.getAll();u.id='u'+Date.now();users.push(u);this.save(users);this._syncUser('saveUser',{user:u});return u;},
+  update(id,data){const users=this.getAll();const i=users.findIndex(u=>u.id===id);if(i>=0){users[i]={...users[i],...data};this.save(users);this._syncUser('saveUser',{user:users[i]});}},
+  remove(id){const users=this.getAll().filter(u=>u.id!==id);this.save(users);this._syncUser('deleteUser',{id});}
+};
+
+// ================================================================
+// CHECKLISTS
+// ================================================================
+const DEFAULT_CHECKLISTS = {
+  GEN:{name:'General Work',code:'GEN',color:'#3B82F6',items:[
+    {id:'gen1',text:'Workers wearing required PPE (helmet, boots, harness, gloves)'},
+    {id:'gen2',text:'Safe means of access to work area provided'},
+    {id:'gen3',text:'Materials placed at least 1m from edges of building'},
+    {id:'gen4',text:'Materials/tools inspected and free of damage/defect'},
+    {id:'gen5',text:'Electrical tools inspected and in good condition'},
+    {id:'gen6',text:'Adequate lighting provided along access and work area'},
+    {id:'gen7',text:'Adequate secured lifelines with padding provided'},
+    {id:'gen8',text:'Barricades erected to prevent fall from height'},
+    {id:'gen9',text:'Work area in good housekeeping condition'},
+    {id:'gen10',text:'Torch light provided for foremen and supervisor'},
+    {id:'gen11',text:'No incompatible work in vicinity'},
+    {id:'gen12',text:'Standing supervision by Supervisor until work completion'},
+    {id:'gen13',text:'Supervisor/Safety Supervisor assigned for night work'},
+  ]},
+  HW:{name:'Hot Work',code:'HW',color:'#EF4444',items:[
+    {id:'hw1',text:'All cylinders in upright and secured position'},
+    {id:'hw2',text:'In open air, well ventilated area'},
+    {id:'hw3',text:'Area free from combustible material'},
+    {id:'hw4',text:'No adjacent sources of heat/sparks'},
+    {id:'hw5',text:'Highly Flammable & No Smoking signs prominently displayed'},
+    {id:'hw6',text:'Suitable fire extinguishers provided'},
+    {id:'hw7',text:'Cylinders & connections checked for leaks with soapy water'},
+    {id:'hw8',text:'Non-return valves incorporated where cylinders connected in parallel'},
+    {id:'hw9',text:'Regulators, torches and nozzles in good working condition'},
+    {id:'hw10',text:'Regulators set to recommended working pressure'},
+    {id:'hw11',text:'Flashback arrestors fitted to all pipeline outlets'},
+    {id:'hw12',text:'Hoses free from cuts or wrapping materials'},
+    {id:'hw13',text:'Designated fire watchman provided'},
+    {id:'hw14',text:'Gas key provided to every facility'},
+    {id:'hw15',text:'Fire extinguishers provided'},
+  ]},
+  WAH:{name:'Work At Height',code:'WAH',color:'#22C55E',items:[
+    {id:'wah1',text:'Lifelines provided according to PE design'},
+    {id:'wah2',text:'Lifelines secured to proper anchorage (beams, columns)'},
+    {id:'wah3',text:'Fibre ropes/galvanized steel of adequate diameter, length, taut'},
+    {id:'wah4',text:'Fibre ropes properly secured using knots/attachments'},
+    {id:'wah5',text:'Lifelines provided with fall arrestor'},
+    {id:'wah6',text:'Workers provided with full body harness with shock absorber'},
+    {id:'wah7',text:'Workers wearing harness in proper manner'},
+    {id:'wah8',text:'Workers know how to attach fall protection to lifelines'},
+    {id:'wah9',text:'Fall protection devices in proper working condition'},
+    {id:'wah10',text:'Webbing in proper condition (not torn, no loose thread)'},
+    {id:'wah11',text:'Lanyard in proper condition (not damaged, splices not loose)'},
+    {id:'wah12',text:'Snaphooks in proper condition (not deformed)'},
+    {id:'wah13',text:'Buckle in proper condition (not damaged or deformed)'},
+    {id:'wah14',text:'All workers using fall protection attached to lifelines'},
+  ]},
+  CS:{name:'Confined Space',code:'CS',color:'#A855F7',items:[
+    {id:'cs1',text:'Valid Confined Space Entry Permit issued and posted at entry point'},
+    {id:'cs2',text:'Risk assessment conducted specifically for confined space entry'},
+    {id:'cs3',text:'Confined space isolated (locked out/tagged out) from all energy sources'},
+    {id:'cs4',text:'Atmosphere tested for oxygen (19.5-23.5%), flammable and toxic gases'},
+    {id:'cs5',text:'Continuous atmospheric monitoring in place throughout work'},
+    {id:'cs6',text:'Adequate ventilation (forced or natural) provided and verified'},
+    {id:'cs7',text:'Trained Standby Person stationed outside confined space at all times'},
+    {id:'cs8',text:'Rescue plan in place and rescue equipment available at entry point'},
+    {id:'cs9',text:'All workers wearing appropriate PPE including SCBA if required'},
+    {id:'cs10',text:'Communication established between workers inside and standby person'},
+    {id:'cs11',text:'Entry log (names, times in/out) maintained'},
+    {id:'cs12',text:'All workers trained and certified for confined space entry'},
+    {id:'cs13',text:'Space purged, cleaned, and made safe prior to entry'},
+    {id:'cs14',text:'Emergency rescue services contactable and aware of activity'},
+  ]},
+  LW:{name:'Lifting Operation',code:'LW',color:'#F59E0B',items:[
+    {id:'lw1',text:'Lifting Plan prepared and approved by Lifting Supervisor'},
+    {id:'lw2',text:'Crane/lifting equipment certified and within load capacity'},
+    {id:'lw3',text:'Crane operator verified as licensed and competent'},
+    {id:'lw4',text:'Pre-lift inspection of crane and lifting gear carried out'},
+    {id:'lw5',text:'All rigging equipment (slings, shackles, hooks) inspected and certified'},
+    {id:'lw6',text:'Lift zone barricaded and unauthorized personnel excluded'},
+    {id:'lw7',text:'Ground condition and outrigger pad placement verified as adequate'},
+    {id:'lw8',text:'Signal person/banksman appointed and in position'},
+    {id:'lw9',text:'Load secured and balanced correctly before lifting'},
+    {id:'lw10',text:'Overhead obstructions and power lines identified and cleared'},
+    {id:'lw11',text:'Two-way communication established between crane operator and signal person'},
+    {id:'lw12',text:'All workers wearing proper PPE including hard hat and hi-vis vest'},
+    {id:'lw13',text:'Wind speed checked and confirmed within safe lifting limits'},
+    {id:'lw14',text:'Lifting Supervisor present and supervising throughout operation'},
+  ]},
+  EXC:{name:'Excavation Work',code:'EXC',color:'#14B8A6',items:[
+    {id:'exc1',text:'Permit to excavate obtained and utility services identified/located'},
+    {id:'exc2',text:'All underground services (water, gas, electrical, telecom) marked out'},
+    {id:'exc3',text:'Hand digging used within 500mm of known underground services'},
+    {id:'exc4',text:'Excavation shored, benched, or battered to prevent collapse'},
+    {id:'exc5',text:'Edge protection and barriers installed to prevent falls into excavation'},
+    {id:'exc6',text:'Safe access/egress points (ladders) provided at max 9m intervals'},
+    {id:'exc7',text:'System to monitor for accumulation of water or gases in excavation'},
+    {id:'exc8',text:'Excavated materials stored at least 1m away from the edge'},
+    {id:'exc9',text:'Excavation inspected at start of each shift by competent person'},
+    {id:'exc10',text:'Nearby structures monitored for signs of settlement or cracking'},
+    {id:'exc11',text:'Plant and machinery kept at safe distance from excavation edge'},
+    {id:'exc12',text:'Workers wearing appropriate PPE (hard hat, safety boots, hi-vis vest)'},
+    {id:'exc13',text:'Rescue plan prepared in case of collapse or emergency'},
+  ]}
+};
+
+const STATUS_LABELS = {
+  draft:'Draft',pending_tic:'Pending TIC',pending_ehs:'Pending EHS',
+  pending_pm:'Pending PM',active:'Active / Approved',closed:'Closed',rejected:'Rejected'
+};
+
+// ================================================================
+// DB LAYER
+// ================================================================
+const DB = {
+  getChecklists(){try{const s=localStorage.getItem('ptw_checklists');return s?JSON.parse(s):DEFAULT_CHECKLISTS;}catch{return DEFAULT_CHECKLISTS;}},
+  saveChecklists(c){localStorage.setItem('ptw_checklists',JSON.stringify(c));},
+  saveToSheets(ptw){
+    try{
+      const p2=JSON.parse(JSON.stringify(ptw));
+      if(p2.stages){Object.keys(p2.stages).forEach(k=>{if(p2.stages[k]&&p2.stages[k].signature)p2.stages[k].signature='[sig]';});}
+      const old=document.getElementById('__sheets_iframe');if(old)old.remove();
+      const oldf=document.getElementById('__sheets_form');if(oldf)oldf.remove();
+      const iframe=document.createElement('iframe');iframe.id='__sheets_iframe';iframe.name='__sheets_iframe';iframe.style.display='none';
+      document.body.appendChild(iframe);
+      const form=document.createElement('form');form.id='__sheets_form';form.method='POST';
+      form.action=APP_CONFIG.sheetsURL;form.target='__sheets_iframe';form.style.display='none';
+      const input=document.createElement('input');input.type='hidden';input.name='data';
+      input.value=JSON.stringify({action:'savePTW',ptw:p2});
+      form.appendChild(input);document.body.appendChild(form);form.submit();
+      console.log('✅ Sent to Sheets:',ptw.id);
+    }catch(e){console.warn('Sheets save error:',e);}
+  },
+  getPTWsLocal(){try{return JSON.parse(localStorage.getItem('ptw_records')||'[]');}catch{return[];}},
+  getPTWs(){return this.getPTWsLocal();},
+  savePTWs(p){localStorage.setItem('ptw_records',JSON.stringify(p));},
+  savePTW(ptw){
+    const ptws=this.getPTWsLocal();const i=ptws.findIndex(p=>p.id===ptw.id);
+    if(i>=0)ptws[i]=ptw;else ptws.unshift(ptw);
+    this.savePTWs(ptws);this.saveToSheets(ptw);
+  },
+  getNextId(type){
+    const ptws=this.getPTWsLocal();
+    const n=ptws.filter(p=>p.type===type).length+1;
+    return `${APP_CONFIG.prefix}-${type}-${String(n).padStart(7,'0')}`;
+  }
+};
+
+// ================================================================
+// APP STATE
+// ================================================================
+let CU=null,CP=null;
+let sigCtx,sigCanvas,sigDrawing=false,sigLX=0,sigLY=0,sigCallback=null;
+let pendingStageKey=null,newSig=null,approveSig=null,closeSig2=null;
+let filterState='mytasks';
+let CU_GPS=null;
+let _autoSyncTimer=null;
+
+// ================================================================
+// UTILS
+// ================================================================
+function fmt(ts){if(!ts)return'—';return new Date(ts).toLocaleString('en-SG',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function fmtShort(ts){if(!ts)return'';return new Date(ts).toLocaleString('en-SG',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
+function toast(msg,type='info'){
+  const c={info:'#60A5FA',success:'#4ADE80',warning:'#FCD34D',error:'#F87171'};
+  const t=document.createElement('div');t.className='toast-item';
+  t.style.borderLeft=`3px solid ${c[type]||c.info}`;t.innerHTML=msg;
+  document.getElementById('toast').appendChild(t);setTimeout(()=>t.remove(),3800);
+}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+
+// ================================================================
+// GPS
+// ================================================================
+function captureGPS(callback){
+  if(!navigator.geolocation){toast('GPS not supported.','warning');if(callback)callback(null);return;}
+  toast('📍 Getting GPS location...','info');
+  navigator.geolocation.getCurrentPosition(
+    pos=>{CU_GPS={lat:pos.coords.latitude.toFixed(6),lng:pos.coords.longitude.toFixed(6),accuracy:Math.round(pos.coords.accuracy),timestamp:new Date().toISOString()};
+      toast(`📍 GPS: ${CU_GPS.lat}, ${CU_GPS.lng} (±${CU_GPS.accuracy}m)`,'success');if(callback)callback(CU_GPS);},
+    err=>{const msgs={1:'GPS access denied.',2:'GPS unavailable.',3:'GPS timeout.'};toast('⚠ '+(msgs[err.code]||'GPS error.'),'warning');if(callback)callback(null);},
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+  );
+}
+
+// ================================================================
+// HEADER
+// ================================================================
+function renderHeader(tid){
+  const rc={supervisor:'#F59E0B',tic:'#3B82F6',ehs:'#22C55E',pm:'#A855F7',admin:'#1E3A6E',project_admin:'#0D9488'};
+  const rl={supervisor:'Supervisor',tic:'Trade IC',ehs:'EHS Officer',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
+  const col=rc[CU.role]||'#9CA3AF';
+  document.getElementById(tid).innerHTML=`
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-name">🏗 BOSH <span style="color:#7BA7DC">PTW</span></span>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar">${CU.name.charAt(0).toUpperCase()}</div>
+        <span class="user-name">${CU.name}</span>
+        <span class="role-badge" style="background:${col}20;color:${col};border:1px solid ${col}40">${rl[CU.role]||CU.role}</span>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="syncFromSheets()">🔄 Sync</button>
+      <button class="btn btn-outline btn-sm" onclick="showPage('reports')">📊 Reports</button>
+      ${(CU.role==='admin'||CU.role==='project_admin')?`<button class="btn btn-outline btn-sm" onclick="showPage('admin')">⚙ Admin</button>`:''}
+      <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </header>`;
+}
+
+// ================================================================
+// AUTH
+// ================================================================
+function togglePw(){
+  const inp=document.getElementById('login-password');const eye=document.getElementById('pw-eye');
+  if(inp.type==='password'){inp.type='text';eye.textContent='🙈';}else{inp.type='password';eye.textContent='👁';}
+}
+function login(){
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-password').value.trim();
+  const err=document.getElementById('login-error');
+  if(!email||!pw){err.textContent='Please enter email and password.';err.style.display='flex';return;}
+  const user=UDB.getAll().find(u=>u.email.toLowerCase()===email.toLowerCase()&&u.password===pw&&u.active!==false);
+  if(!user){err.textContent='Email or password incorrect.';err.style.display='flex';return;}
+  err.style.display='none';
+  CU={role:user.role,name:user.name,email:user.email,company:user.company||APP_CONFIG.company,uid:user.id};
+  toast('Welcome, '+user.name+'! 👷','success');
+  if(user.role==='supervisor'||user.role==='ehs')captureGPS(gps=>{CU_GPS=gps;});
+  showPage('dashboard');
+}
+function logout(){CU=null;CP=null;showPage('login');}
+
+// ================================================================
+// PAGE ROUTER
+// ================================================================
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  if(page==='dashboard'){renderDashboard();autoSync();if(_autoSyncTimer)clearInterval(_autoSyncTimer);_autoSyncTimer=setInterval(()=>{if(CU)silentSync();},60000);}
+  if(page!=='dashboard'){if(_autoSyncTimer){clearInterval(_autoSyncTimer);_autoSyncTimer=null;}}
+  if(page==='new-ptw')renderNewPTW();
+  if(page==='view-ptw'&&CP)renderViewPTW();
+  if(page==='admin')renderAdmin();
+  if(page==='reports')renderReports();
+}
+
+function autoSync(){
+  try{
+    const script=document.createElement('script');
+    window.__autoSync=function(data){
+      if(Array.isArray(data)&&data.length>0){
+        const local=DB.getPTWsLocal();let hasChanges=false;
+        const merged=data.map(remote=>{
+          const loc=local.find(l=>l.id===remote.id);
+          if(loc){if(loc.stages)Object.keys(loc.stages).forEach(k=>{if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;}});if(loc.status!==remote.status)hasChanges=true;}
+          else hasChanges=true;return remote;
+        });
+        local.forEach(loc=>{if(!merged.find(m=>m.id===loc.id))merged.push(loc);});
+        DB.savePTWs(merged);if(hasChanges){renderDashboard();toast('🔄 PTW records updated!','success');}
+      }
+      try{document.head.removeChild(script);}catch(e){}delete window.__autoSync;
+    };
+    script.onerror=()=>{try{document.head.removeChild(script);}catch(e){}};
+    script.src=APP_CONFIG.sheetsURL+'?callback=__autoSync&t='+Date.now();
+    document.head.appendChild(script);
+  }catch(e){console.warn('autoSync error:',e);}
+}
+function silentSync(){
+  try{
+    const script=document.createElement('script');
+    window.__silentSync=function(data){
+      if(Array.isArray(data)&&data.length>0){
+        const local=DB.getPTWsLocal();let hasChanges=false;
+        const merged=data.map(remote=>{const loc=local.find(l=>l.id===remote.id);if(loc){if(loc.stages)Object.keys(loc.stages).forEach(k=>{if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;}});if(loc.status!==remote.status)hasChanges=true;}else hasChanges=true;return remote;});
+        local.forEach(loc=>{if(!merged.find(m=>m.id===loc.id))merged.push(loc);});
+        DB.savePTWs(merged);if(hasChanges){renderDashboard();toast('🔄 New updates received','info');}
+      }
+      try{document.head.removeChild(script);}catch(e){}delete window.__silentSync;
+    };
+    script.onerror=()=>{try{document.head.removeChild(script);}catch(e){}};
+    script.src=APP_CONFIG.sheetsURL+'?callback=__silentSync&t='+Date.now();
+    document.head.appendChild(script);
+  }catch(e){}
+}
+function syncFromSheets(){
+  toast('🔄 Syncing from Google Sheets...','info');
+  const script=document.createElement('script');
+  window.__ptwSync=function(data){
+    if(Array.isArray(data)&&data.length>0){
+      const local=DB.getPTWsLocal();
+      const merged=data.map(remote=>{const loc=local.find(l=>l.id===remote.id);if(loc&&loc.stages)Object.keys(loc.stages).forEach(k=>{if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;}});return remote;});
+      local.forEach(loc=>{if(!merged.find(m=>m.id===loc.id))merged.push(loc);});
+      DB.savePTWs(merged);toast(`✅ Synced ${data.length} PTW(s)!`,'success');renderDashboard();
+    }else toast('No records in Sheets.','warning');
+    document.head.removeChild(script);delete window.__ptwSync;
+  };
+  script.onerror=()=>toast('❌ Sync failed. Check connection.','error');
+  script.src=APP_CONFIG.sheetsURL+'?callback=__ptwSync&t='+Date.now();
+  document.head.appendChild(script);
+}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+function isMyTask(ptw){
+  const me=CU.email.toLowerCase(),r=CU.role;
+  if(r==='admin')return true;
+  if(r==='supervisor')return ptw.stages?.supervisor?.email?.toLowerCase()===me;
+  if(r==='tic'&&ptw.status==='pending_tic'){const a=(ptw.assignedTIC?.email||'').toLowerCase();return !a||a===me;}
+  if(r==='ehs'&&ptw.status==='pending_ehs'){const a=(ptw.assignedEHS?.email||'').toLowerCase();return !a||a===me;}
+  if(r==='pm'&&ptw.status==='pending_pm'){const a=(ptw.assignedPM?.email||'').toLowerCase();return !a||a===me;}
+  return false;
+}
+function isExpired(ptw){if(!ptw.validityEnd||ptw.status==='closed'||ptw.status==='rejected')return false;return new Date(ptw.validityEnd)<new Date();}
+function isExpiringSoon(ptw){if(!ptw.validityEnd||ptw.status==='closed'||ptw.status==='rejected')return false;const hrs=(new Date(ptw.validityEnd)-new Date())/3600000;return hrs>0&&hrs<=4;}
+
+function renderDashboard(){
+  renderHeader('app-header-dash');
+  let ptws=DB.getPTWs();
+  const myTasks=ptws.filter(p=>isMyTask(p)&&(p.status.startsWith('pending')||p.status==='active'||p.status==='draft'));
+  const myTaskCount=myTasks.length;
+  const stats={total:ptws.length,mytasks:myTaskCount,pending:ptws.filter(p=>p.status.startsWith('pending')).length,active:ptws.filter(p=>p.status==='active').length,closed:ptws.filter(p=>p.status==='closed').length,rejected:ptws.filter(p=>p.status==='rejected').length,expired:ptws.filter(p=>isExpired(p)).length};
+  let filtered=ptws;
+  if(filterState==='mytasks')filtered=myTasks;
+  else if(filterState==='pending')filtered=ptws.filter(p=>p.status.startsWith('pending'));
+  else if(filterState==='expired')filtered=ptws.filter(p=>isExpired(p));
+  else if(filterState!=='all')filtered=ptws.filter(p=>p.status===filterState);
+  const canCreate=(CU.role==='supervisor'||CU.role==='admin');
+  document.getElementById('dashboard-content').innerHTML=`
+  <div class="page-title">
+    <div><h2>Dashboard</h2><div class="subtitle">${APP_CONFIG.company}</div></div>
+    ${canCreate?`<button class="btn btn-primary" onclick="showPage('new-ptw')">+ New PTW</button>`:''}
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card stat-total" style="cursor:pointer" onclick="setFilter('all')"><div class="stat-num">${stats.total}</div><div class="stat-label">Total PTWs</div><div class="stat-accent"></div></div>
+    <div class="stat-card" style="cursor:pointer;border-color:var(--orange)" onclick="setFilter('mytasks')"><div class="stat-num" style="color:var(--orange)">${stats.mytasks}</div><div class="stat-label">⚡ My Tasks</div><div class="stat-accent" style="background:var(--orange)"></div></div>
+    <div class="stat-card stat-pending" style="cursor:pointer" onclick="setFilter('pending')"><div class="stat-num">${stats.pending}</div><div class="stat-label">Pending</div><div class="stat-accent"></div></div>
+    <div class="stat-card stat-active" style="cursor:pointer" onclick="setFilter('active')"><div class="stat-num">${stats.active}</div><div class="stat-label">Active</div><div class="stat-accent"></div></div>
+    <div class="stat-card stat-closed" style="cursor:pointer" onclick="setFilter('closed')"><div class="stat-num">${stats.closed}</div><div class="stat-label">Closed</div><div class="stat-accent"></div></div>
+    ${stats.expired>0?`<div class="stat-card stat-rejected" style="cursor:pointer" onclick="setFilter('expired')"><div class="stat-num">${stats.expired}</div><div class="stat-label">⏰ Expired</div><div class="stat-accent"></div></div>`:''}
+  </div>
+  <div class="section-header">
+    <h3>${filterState==='mytasks'?`⚡ My Tasks (${filtered.length})`:filterState==='expired'?`⏰ Expired (${filtered.length})`:`Permit Records (${filtered.length})`}</h3>
+    <div class="filter-bar">
+      <button class="filter-btn ${filterState==='mytasks'?'active':''}" onclick="setFilter('mytasks')">⚡ My Tasks ${myTaskCount>0?`(${myTaskCount})`:''}</button>
+      <button class="filter-btn ${filterState==='all'?'active':''}" onclick="setFilter('all')">All</button>
+      <button class="filter-btn ${filterState==='pending'?'active':''}" onclick="setFilter('pending')">Pending</button>
+      <button class="filter-btn ${filterState==='active'?'active':''}" onclick="setFilter('active')">Active</button>
+      <button class="filter-btn ${filterState==='closed'?'active':''}" onclick="setFilter('closed')">Closed</button>
+      <button class="filter-btn ${filterState==='rejected'?'active':''}" onclick="setFilter('rejected')">Rejected</button>
+    </div>
+  </div>
+  <div class="ptw-list">
+    ${filtered.length===0?`<div class="empty-state"><div style="font-size:46px;margin-bottom:14px">${filterState==='mytasks'?'✅':'📋'}</div><h3>${filterState==='mytasks'?'No pending tasks!':'No Permits Found'}</h3><p>${filterState==='mytasks'?'You have no pending actions.':canCreate?'Click "+ New PTW" to create your first permit.':'No permits in this category.'}</p></div>`:filtered.map(p=>ptwCard(p)).join('')}
+  </div>`;
+}
+function setFilter(f){filterState=f;renderDashboard();}
+
+function ptwCard(ptw){
+  const me=CU.email.toLowerCase(),r=CU.role;
+  const isMyAction=(r==='tic'&&ptw.status==='pending_tic'&&(!ptw.assignedTIC?.email||ptw.assignedTIC.email.toLowerCase()===me))||(r==='ehs'&&ptw.status==='pending_ehs'&&(!ptw.assignedEHS?.email||ptw.assignedEHS.email.toLowerCase()===me))||(r==='pm'&&ptw.status==='pending_pm'&&(!ptw.assignedPM?.email||ptw.assignedPM.email.toLowerCase()===me))||(r==='supervisor'&&ptw.status==='active'&&(ptw.stages?.supervisor?.email||'').toLowerCase()===me)||(r==='admin'&&ptw.status==='active');
+  const expired=isExpired(ptw),expiringSoon=isExpiringSoon(ptw);
+  const borderCol=expired?'#DC2626':expiringSoon?'#D97706':isMyAction?'var(--orange)':'';
+  return `<div class="ptw-card" onclick="openPTW('${ptw.id}')" style="${borderCol?`border-color:${borderCol};`:''}">
+    <div class="ptw-type-badge type-${ptw.type}">${ptw.type}</div>
+    <div>
+      <div class="ptw-ref">${ptw.id}</div>
+      <div class="ptw-meta">
+        <span>📍 ${ptw.location||'—'}</span>
+        <span>📅 ${fmtShort(ptw.validityStart)} → ${fmtShort(ptw.validityEnd)}</span>
+        <span style="color:var(--text-dim)">${ptw.stages?.supervisor?.name||'—'}</span>
+        ${ptw.project?`<span style="color:var(--text-dim)">📋 ${ptw.project}</span>`:''}
+      </div>
+      ${expired?`<div class="expiry-badge">⏰ EXPIRED — Please Close</div>`:''}
+      ${expiringSoon&&!expired?`<div class="expiry-badge expiry-soon">⚠ Expiring Soon</div>`:''}
+    </div>
+    <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div class="status-badge status-${ptw.status}">${STATUS_LABELS[ptw.status]||ptw.status}</div>
+      ${isMyAction?`<div style="font-size:10px;color:var(--primary);font-weight:700">⚡ Action needed</div>`:''}
+      <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();quickPDF('${ptw.id}')" style="font-size:10px;padding:3px 9px">📄 PDF</button>
+    </div>
+  </div>`;
+}
+function openPTW(id){CP=DB.getPTWs().find(p=>p.id===id);if(CP)showPage('view-ptw');}
+function quickPDF(id){const prev=CP;CP=DB.getPTWs().find(p=>p.id===id);if(CP)genPDF();CP=prev;}
+
+// ================================================================
+// NEW PTW FORM
+// ================================================================
+function renderNewPTW(){
+  renderHeader('app-header-new');
+  const cls=DB.getChecklists();
+  const opts=Object.values(cls).map(c=>`<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+  const now=new Date(),pad=n=>String(n).padStart(2,'0');
+  const df=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T08:00`;
+  const dt=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T20:00`;
+  newSig=null;
+  if(CU.role==='supervisor'||CU.role==='project_admin')captureGPS(gps=>{CU_GPS=gps;});
+  const myProjects=PDB.getForUser(CU.uid,CU.role,CU.email).filter(p=>p.status==='active');
+  document.getElementById('new-ptw-content').innerHTML=`
+  <div class="page-title"><div><h2>New Permit To Work</h2></div></div>
+  <div class="form-card">
+    <h3>📄 1. Permit Details</h3>
+    <div class="form-group"><label>Select Project *</label>
+      <select id="f-project-id" onchange="onProjectSelect()">
+        <option value="">-- Select Project --</option>
+        ${myProjects.map(p=>`<option value="${p.id}" data-name="${p.name}" data-loc="${p.location||''}">${p.code} — ${p.name}</option>`).join('')}
+        <option value="__custom__">+ Enter custom project name</option>
+      </select>
+    </div>
+    <div class="form-group" id="f-project-custom-wrap" style="display:none">
+      <label>Custom Project Name *</label><input id="f-project" type="text" placeholder="Enter project name">
+    </div>
+    <div class="form-group" id="f-project-name-display" style="display:none">
+      <label>Project Name</label>
+      <div style="padding:11px 14px;background:#f0f4fa;border-radius:8px;font-size:14px;font-weight:600;color:var(--primary)" id="f-project-name-text"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Permit Type *</label><select id="f-type" onchange="updateChecklist()"><option value="">Select Type</option>${opts}</select></div>
+      <div class="form-group"><label>Location *</label><input id="f-location" type="text" placeholder="Zone/Block, Floor Level"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Valid From *</label><input id="f-from" type="datetime-local" value="${df}"></div>
+      <div class="form-group"><label>Valid To *</label><input id="f-to" type="datetime-local" value="${dt}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Contact Number</label><input id="f-contact" type="tel" placeholder="Mobile number"></div>
+      <div class="form-group"><label>Description of Work</label><input id="f-desc" type="text" placeholder="Brief description"></div>
+    </div>
+    <div class="form-group">
+      <label>Assign To — Trade In Charge (TIC) *</label>
+      <select id="f-tic">
+        <option value="">-- Select TIC --</option>
+        ${UDB.getByRole('tic').map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} (${u.email})</option>`).join('')}
+      </select>
+    </div>
+  </div>
+  <div class="form-card">
+    <h3>👷 2. Workers Involved</h3>
+    <div id="workers-list">
+      <div class="worker-row"><input type="text" placeholder="Worker Name" class="w-name"><input type="text" placeholder="Trade / Designation" class="w-trade"><button class="remove-btn" onclick="removeW(this)">×</button></div>
+    </div>
+    <button class="add-row-btn" onclick="addW()">+ Add Worker</button>
+  </div>
+  <div class="form-card">
+    <h3>🔧 3. Equipment / Tools</h3>
+    <textarea id="f-equip" rows="3" placeholder="List all equipment and tools to be used..."></textarea>
+  </div>
+  <div class="form-card" id="cl-card" style="display:none">
+    <h3 id="cl-title">✅ 4. Safety Checklist</h3>
+    <div class="alert alert-warning">⚠ All checklist items must be completed before signing.</div>
+    <table class="checklist-table">
+      <thead><tr><th style="width:55%">Safety Check Item</th><th>Yes</th><th>No</th><th>N/A</th><th>Others</th></tr></thead>
+      <tbody id="cl-body"></tbody>
+    </table>
+  </div>
+  <div class="form-card">
+    <h3>✍️ 5. Supervisor Declaration & Signature</h3>
+    <div class="declaration-box">As Supervisor, I possess the required competence to oversee this activity. The Method Statement, Risk Assessment, and Safety Checklists are understood and complied with. Work areas and activities reported in this application are safe to proceed. By utilizing this electronic permit to work system, I acknowledge that my responsibilities and duties remain unaltered.</div>
+    <div id="new-sig-preview" style="display:none;margin-bottom:14px">
+      <div class="sig-box">
+        <div class="sig-img"><img id="new-sig-img"></div>
+        <div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email}</div><div class="sig-time">Signed with Saved Signature</div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="refreshGPS('new')">📍 Get GPS</button>
+      <button class="btn btn-outline" onclick="openSig('new')">✍ Sign Declaration</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:11px;flex-wrap:wrap;margin-top:6px">
+    <button class="btn btn-outline" onclick="showPage('dashboard')">Cancel</button>
+    <button class="btn btn-primary" style="flex:1;max-width:300px;justify-content:center" onclick="submitPTW()">Submit PTW →</button>
+  </div>`;
+}
+
+function onProjectSelect(){
+  const sel=document.getElementById('f-project-id');const val=sel.value;
+  const cw=document.getElementById('f-project-custom-wrap');const nd=document.getElementById('f-project-name-display');const nt=document.getElementById('f-project-name-text');
+  if(val==='__custom__'){cw.style.display='block';nd.style.display='none';}
+  else if(val){cw.style.display='none';nd.style.display='block';const opt=sel.options[sel.selectedIndex];nt.textContent=opt.dataset.name||'';const loc=opt.dataset.loc||'';if(loc)document.getElementById('f-location').value=loc;}
+  else{cw.style.display='none';nd.style.display='none';}
+}
+function updateChecklist(){
+  const type=document.getElementById('f-type').value;const card=document.getElementById('cl-card');const body=document.getElementById('cl-body');const cls=DB.getChecklists();
+  if(!type||!cls[type]){card.style.display='none';return;}
+  card.style.display='block';const cl=cls[type];
+  document.getElementById('cl-title').innerHTML=`✅ 4. ${cl.name} Safety Checklist`;
+  body.innerHTML=cl.items.map(item=>`<tr><td>${item.text}</td>${['yes','no','na','others'].map(opt=>`<td><label class="check-opt"><input type="radio" name="${item.id}" value="${opt}" ${opt==='yes'?'checked':''}> ${opt.toUpperCase()}</label></td>`).join('')}</tr>`).join('');
+  setTimeout(()=>{const c=document.getElementById('cl-card');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});},100);
+}
+function addW(){const l=document.getElementById('workers-list');const r=document.createElement('div');r.className='worker-row';r.innerHTML=`<input type="text" placeholder="Worker Name" class="w-name"><input type="text" placeholder="Trade / Designation" class="w-trade"><button class="remove-btn" onclick="removeW(this)">×</button>`;l.appendChild(r);}
+function removeW(btn){const rows=document.querySelectorAll('.worker-row');if(rows.length>1)btn.parentElement.remove();}
+
+function submitPTW(){
+  const type=document.getElementById('f-type').value;const location=document.getElementById('f-location').value.trim();const from=document.getElementById('f-from').value;const to=document.getElementById('f-to').value;
+  const projSel=document.getElementById('f-project-id');const projVal=projSel?projSel.value:'';
+  let project='',projectId='';
+  if(projVal==='__custom__'||!projVal){project=document.getElementById('f-project')?.value.trim()||'';}
+  else{const obj=PDB.getById(projVal);project=obj?obj.name:projSel.options[projSel.selectedIndex]?.dataset?.name||'';projectId=projVal;}
+  if(!project&&!projectId){toast('Please select or enter a Project.','error');return;}
+  if(!type){toast('Please select a permit type.','error');return;}
+  if(!location){toast('Please enter work location.','error');return;}
+  if(!from||!to){toast('Please set validity period.','error');return;}
+  const ticEl=document.getElementById('f-tic');const ticEmail=ticEl?ticEl.value:'';const ticName=ticEl?ticEl.options[ticEl.selectedIndex]?.dataset?.name||'':'';
+  if(!ticEmail){toast('Please select a Trade In Charge (TIC).','error');return;}
+  if(!newSig){toast('Please sign the declaration first.','error');return;}
+  const cls=DB.getChecklists();const checklist={};
+  if(cls[type])cls[type].items.forEach(item=>{const c=document.querySelector(`input[name="${item.id}"]:checked`);checklist[item.id]=c?c.value:'yes';});
+  const workers=[];
+  document.querySelectorAll('.worker-row').forEach(row=>{const n=row.querySelector('.w-name')?.value.trim();const t=row.querySelector('.w-trade')?.value.trim();if(n)workers.push({name:n,trade:t||''});});
+  const ptw={
+    id:DB.getNextId(type),type,status:'pending_tic',
+    company:CU.company,project,projectId:projectId||'',location,
+    validityStart:new Date(from).toISOString(),validityEnd:new Date(to).toISOString(),
+    contactNumber:document.getElementById('f-contact').value,workDescription:document.getElementById('f-desc').value,
+    workers,equipment:document.getElementById('f-equip').value,checklist,
+    assignedTIC:{email:ticEmail,name:ticName},
+    stages:{supervisor:{name:CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:newSig,remarks:'',gps:(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null}},
+    createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
+  };
+  DB.savePTW(ptw);newSig=null;
+  toast(`✅ PTW ${ptw.id} submitted!`,'success');
+  filterState='all';showPage('dashboard');
+}
+
+// ================================================================
+// VIEW PTW
+// ================================================================
+function renderViewPTW(){
+  if(!CP)return;
+  renderHeader('app-header-view');
+  const ptw=CP;const cls=DB.getChecklists();const cl=cls[ptw.type];
+  approveSig=null;closeSig2=null;
+  const steps=[{key:'supervisor',label:'Supervisor',short:'SUP'},{key:'tic',label:'Trade In Charge',short:'TIC'},{key:'ehs',label:'EHS',short:'EHS'},{key:'pm',label:'Proj. Manager',short:'PM'},{key:'close',label:'Closed',short:'✓'}];
+  const stageIdx={pending_tic:1,pending_ehs:2,pending_pm:3,active:4,closed:5,rejected:-1,draft:0};
+  const ci=stageIdx[ptw.status]??1;
+  const timeline=steps.map((s,i)=>{
+    let c=(i<ci)?'done':(i===ci&&ptw.status!=='rejected'&&ptw.status!=='closed')?'current':'pending';
+    if(ptw.status==='closed')c=i<5?'done':'pending';
+    const st=ptw.stages?.[s.key];
+    return `<div class="wf-step ${c}"><div class="wf-dot">${c==='done'?'✓':s.short}</div><div class="wf-label">${s.label}</div><div class="wf-time">${st?.timestamp?fmtShort(st.timestamp):''}</div></div>`;
+  }).join('');
+  const rejHtml=ptw.status==='rejected'?`<div class="alert alert-danger">⛔ <b>Rejected by ${ptw.rejectedBy||'Unknown'}:</b> ${ptw.rejectionReason||''}</div>`:'';
+  document.getElementById('view-ptw-content').innerHTML=`
+  <div class="ptw-detail-header">
+    <div class="ref-row"><div class="ref-num">${ptw.id}</div><span class="ptw-type-badge type-${ptw.type}">${ptw.type}</span><span class="status-badge status-${ptw.status}">${STATUS_LABELS[ptw.status]}</span></div>
+    <div class="detail-grid">
+      <div class="detail-field"><label>Company</label><div class="value">${ptw.company||'—'}</div></div>
+      <div class="detail-field"><label>Project</label><div class="value">${ptw.project||'—'}</div></div>
+      <div class="detail-field"><label>Location</label><div class="value">${ptw.location||'—'}</div></div>
+      <div class="detail-field"><label>Valid From</label><div class="value">${fmt(ptw.validityStart)}</div></div>
+      <div class="detail-field"><label>Valid To</label><div class="value">${fmt(ptw.validityEnd)}</div></div>
+      <div class="detail-field"><label>Contact</label><div class="value">${ptw.contactNumber||'—'}</div></div>
+      ${ptw.workDescription?`<div class="detail-field"><label>Work Description</label><div class="value">${ptw.workDescription}</div></div>`:''}
+    </div>
+  </div>
+  ${rejHtml}
+  <div class="form-card"><h3 style="color:var(--text-muted);font-size:13px;border:none;padding-bottom:0;margin-bottom:16px">APPROVAL WORKFLOW</h3><div class="workflow-timeline">${timeline}</div></div>
+  ${ptw.workers?.length?`<div class="stage-section"><div class="stage-title">👷 Workers (${ptw.workers.length})</div>${ptw.workers.map(w=>`<div style="font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;gap:12px"><b>${w.name}</b><span style="color:var(--text-muted)">${w.trade}</span></div>`).join('')}</div>`:''}
+  ${ptw.equipment?`<div class="stage-section"><div class="stage-title">🔧 Equipment / Tools</div><p style="font-size:12.5px;color:var(--text-muted)">${ptw.equipment}</p></div>`:''}
+  ${cl?`<div class="stage-section"><div class="stage-title">✅ ${cl.name} Checklist</div><table class="checklist-table"><thead><tr><th style="width:60%">Item</th><th>Result</th></tr></thead><tbody>${cl.items.map(item=>{const v=ptw.checklist?.[item.id]||'yes';const vl={yes:'✅ Yes',no:'❌ No',na:'— N/A',others:'📝 Others'}[v]||v;const vc=v==='yes'?'var(--success)':v==='no'?'var(--danger)':'var(--text-muted)';return `<tr><td>${item.text}</td><td style="color:${vc};font-weight:600;font-size:12px">${vl}</td></tr>`;}).join('')}</tbody></table></div>`:''}
+  <div style="margin-top:18px">
+    ${stageBlock(ptw,'supervisor','1','Permit Application — Supervisor')}
+    ${stageBlock(ptw,'tic','2','Verification by Trade-in-Charge')}
+    ${stageBlock(ptw,'ehs','3','Assessment by EHS')}
+    ${stageBlock(ptw,'pm','4','Inspection by Project Manager')}
+    ${ptw.status==='closed'||ptw.stages?.close?stageBlock(ptw,'close','5','Close PTW'):''}
+  </div>
+  <div id="action-panel-anchor">${actionPanel(ptw)}</div>
+  <div style="margin-top:14px;display:flex;gap:9px;flex-wrap:wrap;padding-bottom:60px">
+    <button class="btn btn-outline" onclick="genPDF()">📄 Export PDF</button>
+  </div>`;
+  const needsAction=['tic','ehs','pm'].includes(CU.role)&&['pending_tic','pending_ehs','pending_pm'].includes(ptw.status);
+  if(needsAction)setTimeout(()=>{const a=document.getElementById('action-panel-anchor');if(a)a.scrollIntoView({behavior:'smooth',block:'start'});},300);
+}
+
+function stageBlock(ptw,key,num,title){
+  const s=ptw.stages?.[key];
+  if(!s)return`<div class="stage-section" style="opacity:.4"><div class="stage-title"><span class="step-num">${num}</span>${title}<span style="font-size:10px;color:var(--text-dim);margin-left:auto;font-weight:400">Pending</span></div></div>`;
+  return`<div class="stage-section"><div class="stage-title"><span class="step-num" style="background:var(--bg);border-color:var(--success);color:var(--success)">✓</span>${title}</div>
+  <div class="sig-box"><div class="sig-img">${s.signature?`<img src="${s.signature}">`:`<span style="color:var(--text-dim);font-size:10px">Signed</span>`}</div>
+  <div class="sig-info"><div class="sig-name">${s.name||'—'}</div><div class="sig-email">${s.email||''}${s.company?` · ${s.company}`:''}</div><div class="sig-time">${fmt(s.timestamp)}</div>${s.remarks?`<div class="sig-remarks">Remarks: ${s.remarks}</div>`:''}</div></div></div>`;
+}
+
+function actionPanel(ptw){
+  const r=CU.role,me=CU.email.toLowerCase();
+  if(r==='admin'&&ptw.status!=='closed'&&ptw.status!=='rejected'){
+    return`<div class="form-card" style="border-color:var(--primary);margin-top:18px"><h3 style="color:var(--primary)">🔐 Admin — Override Close</h3>
+    <div class="form-group"><label>Closing Remarks</label><textarea id="close-remarks" rows="2" placeholder="Admin override close..."></textarea></div>
+    <div id="close-sig-preview" style="display:none;margin-bottom:12px"><div class="sig-box"><div class="sig-img"><img id="close-sig-img"></div><div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email}</div></div></div></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn btn-outline" onclick="openSig('close')">✍ Sign</button><button class="btn btn-primary" onclick="doClose()">🔒 Close PTW</button></div></div>`;
+  }
+  if(r==='tic'&&ptw.status==='pending_tic'){
+    const assigned=(ptw.assignedTIC?.email||'').toLowerCase();
+    if(assigned&&assigned!==me)return`<div class="alert alert-info" style="margin-top:18px">ℹ This PTW is assigned to <b>${ptw.assignedTIC?.name||assigned}</b> for TIC verification.</div>`;
+    return approvePanel('tic','Verify & Forward to EHS');
+  }
+  if(r==='ehs'&&ptw.status==='pending_ehs'){
+    const assigned=(ptw.assignedEHS?.email||'').toLowerCase();
+    if(assigned&&assigned!==me)return`<div class="alert alert-info" style="margin-top:18px">ℹ This PTW is assigned to <b>${ptw.assignedEHS?.name||assigned}</b> for EHS assessment.</div>`;
+    return approvePanel('ehs','Approve & Forward to Project Manager');
+  }
+  if(r==='pm'&&ptw.status==='pending_pm'){
+    const assigned=(ptw.assignedPM?.email||'').toLowerCase();
+    if(assigned&&assigned!==me)return`<div class="alert alert-info" style="margin-top:18px">ℹ This PTW is assigned to <b>${ptw.assignedPM?.name||assigned}</b> for final approval.</div>`;
+    return approvePanel('pm','Final Approval — Authorize Work to Proceed');
+  }
+  if(ptw.status==='active'){
+    if(r==='supervisor')return closePanel();
+    if(r==='pm')return closePanelPM();
+    if(r==='admin')return closePanel();
+  }
+  return'';
+}
+
+function approvePanel(stageKey,label){
+  let nextSel='';
+  if(stageKey==='tic'){const list=UDB.getByRole('ehs');nextSel=`<div class="form-group"><label>Forward To — EHS Officer *</label><select id="next-person-select"><option value="">-- Select EHS --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} (${u.email})</option>`).join('')}</select></div>`;}
+  else if(stageKey==='ehs'){const list=UDB.getByRole('pm');nextSel=`<div class="form-group"><label>Forward To — Project Manager *</label><select id="next-person-select"><option value="">-- Select PM --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} (${u.email})</option>`).join('')}</select></div>`;}
+  return`<div class="form-card" style="border-color:var(--orange);margin-top:18px"><h3>⚡ Action Required — ${label}</h3>
+  ${nextSel}
+  <div class="form-group"><label>Remarks (Optional)</label><textarea id="approve-remarks" rows="2" placeholder="Add conditions or remarks..."></textarea></div>
+  <div id="approve-sig-preview" style="display:none;margin-bottom:12px"><div class="sig-box"><div class="sig-img"><img id="approve-sig-img"></div><div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email} · ${CU.company}</div></div></div></div>
+  <div id="gps-status-approve" style="margin-bottom:8px"></div>
+  <div style="display:flex;gap:9px;flex-wrap:wrap">
+    ${stageKey==='ehs'?`<button class="btn btn-outline" onclick="refreshGPS('approve')">📍 GPS</button>`:''}
+    <button class="btn btn-outline" onclick="openSig('approve')">✍ Sign</button>
+    <button class="btn btn-success" onclick="doApprove('${stageKey}')">✅ ${stageKey==='pm'?'Approve PTW':stageKey==='tic'?'Verify':'Approve'}</button>
+    <button class="btn btn-danger" onclick="openReject('${stageKey}')">⛔ Reject</button>
+  </div></div>`;
+}
+
+function closePanelPM(){
+  return`<div class="form-card" style="border-color:var(--warning);margin-top:18px"><h3 style="color:var(--warning)">⚠ PM Actions</h3>
+  <div class="form-group"><label>Remarks *</label><textarea id="close-remarks" rows="2" placeholder="Reason..."></textarea></div>
+  <div id="close-sig-preview" style="display:none;margin-bottom:12px"><div class="sig-box"><div class="sig-img"><img id="close-sig-img"></div><div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email}</div></div></div></div>
+  <div style="display:flex;gap:9px;flex-wrap:wrap">
+    <button class="btn btn-outline" onclick="openSig('close')">✍ Sign</button>
+    <button class="btn btn-warning" onclick="doClose()">🔒 Close PTW</button>
+    <button class="btn btn-danger" onclick="doRevoke()">⛔ Revoke PTW</button>
+  </div>
+  <p style="font-size:10px;color:var(--text-dim);margin-top:8px">⛔ Revoke if work is unsafe — MOM e-PTW requirement</p></div>`;
+}
+
+function closePanel(){
+  return`<div class="form-card" style="border-color:var(--warning);margin-top:18px"><h3 style="color:var(--warning)">🔒 5. Close PTW</h3>
+  <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Work is complete. Sign and close this permit to work.</p>
+  <div class="form-group"><label>Closing Remarks</label><textarea id="close-remarks" rows="2" placeholder="Work completed..."></textarea></div>
+  <div id="close-sig-preview" style="display:none;margin-bottom:12px"><div class="sig-box"><div class="sig-img"><img id="close-sig-img"></div><div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email}</div></div></div></div>
+  <div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn btn-outline" onclick="openSig('close')">✍ Sign</button><button class="btn btn-warning" onclick="doClose()">🔒 Close PTW</button></div></div>`;
+}
+
+// ================================================================
+// SIGNATURE
+// ================================================================
+function openSig(ctx){
+  sigCallback=ctx;
+  const me=UDB.getAll().find(u=>u.email===CU.email);
+  if(me&&me.defaultSig&&me.defaultSig.startsWith('data:image')){
+    if(ctx==='new'){newSig=me.defaultSig;const p=document.getElementById('new-sig-preview');const i=document.getElementById('new-sig-img');if(p)p.style.display='block';if(i)i.src=me.defaultSig;}
+    else if(ctx==='approve'){approveSig=me.defaultSig;const p=document.getElementById('approve-sig-preview');const i=document.getElementById('approve-sig-img');if(p)p.style.display='block';if(i)i.src=me.defaultSig;}
+    else if(ctx==='close'){closeSig2=me.defaultSig;const p=document.getElementById('close-sig-preview');const i=document.getElementById('close-sig-img');if(p)p.style.display='block';if(i)i.src=me.defaultSig;}
+    toast('✅ Signature applied automatically!','success');return;
+  }
+  document.getElementById('sig-modal').classList.add('active');
+  setTimeout(()=>{
+    sigCanvas=document.getElementById('sig-canvas');sigCtx=sigCanvas.getContext('2d');
+    sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+    sigCtx.strokeStyle='#1a1a2e';sigCtx.lineWidth=2.5;sigCtx.lineCap='round';sigCtx.lineJoin='round';
+    const getPos=(e,touch)=>{const r=sigCanvas.getBoundingClientRect();const src=touch||e;return{x:(src.clientX-r.left)*(sigCanvas.width/r.width),y:(src.clientY-r.top)*(sigCanvas.height/r.height)};};
+    sigCanvas.onmousedown=e=>{sigDrawing=true;const p=getPos(e);sigLX=p.x;sigLY=p.y;};
+    sigCanvas.onmousemove=e=>{if(!sigDrawing)return;const p=getPos(e);sigCtx.beginPath();sigCtx.moveTo(sigLX,sigLY);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigLX=p.x;sigLY=p.y;};
+    sigCanvas.onmouseup=sigCanvas.onmouseleave=()=>sigDrawing=false;
+    sigCanvas.ontouchstart=e=>{e.preventDefault();sigDrawing=true;const p=getPos(null,e.touches[0]);sigLX=p.x;sigLY=p.y;};
+    sigCanvas.ontouchmove=e=>{e.preventDefault();if(!sigDrawing)return;const p=getPos(null,e.touches[0]);sigCtx.beginPath();sigCtx.moveTo(sigLX,sigLY);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigLX=p.x;sigLY=p.y;};
+    sigCanvas.ontouchend=()=>sigDrawing=false;
+  },120);
+}
+function clearSig(){if(sigCtx)sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);}
+function saveSig(){
+  if(!sigCanvas)return;
+  const data=sigCanvas.toDataURL('image/png');
+  if(sigCallback==='new'){newSig=data;const p=document.getElementById('new-sig-preview');const i=document.getElementById('new-sig-img');if(p)p.style.display='block';if(i)i.src=data;}
+  else if(sigCallback==='approve'){approveSig=data;const p=document.getElementById('approve-sig-preview');const i=document.getElementById('approve-sig-img');if(p)p.style.display='block';if(i)i.src=data;}
+  else if(sigCallback==='close'){closeSig2=data;const p=document.getElementById('close-sig-preview');const i=document.getElementById('close-sig-img');if(p)p.style.display='block';if(i)i.src=data;}
+  toast('Signature saved ✓','success');closeModal('sig-modal');
+}
+
+// ================================================================
+// WORKFLOW ACTIONS
+// ================================================================
+function doApprove(stageKey){
+  if(!approveSig){toast('Please sign first.','error');return;}
+  const sel=document.getElementById('next-person-select');
+  if((stageKey==='tic'||stageKey==='ehs')&&sel&&!sel.value){toast(`Please select the ${stageKey==='tic'?'EHS Officer':'Project Manager'}.`,'error');return;}
+  const ptw=DB.getPTWs().find(p=>p.id===CP.id);
+  const remarks=document.getElementById('approve-remarks')?.value||'';
+  const nextStatus={tic:'pending_ehs',ehs:'pending_pm',pm:'active'};
+  const stageGPS=(stageKey==='ehs'&&CU_GPS?.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null;
+  ptw.stages[stageKey]={name:CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:approveSig,remarks,gps:stageGPS};
+  if(sel&&sel.value){const nextName=sel.options[sel.selectedIndex]?.dataset?.name||'';if(stageKey==='tic')ptw.assignedEHS={email:sel.value,name:nextName};if(stageKey==='ehs')ptw.assignedPM={email:sel.value,name:nextName};}
+  ptw.status=nextStatus[stageKey]||ptw.status;ptw.updatedAt=new Date().toISOString();
+  DB.savePTW(ptw);approveSig=null;CP=ptw;
+  const msg={pending_ehs:'Sent to EHS for assessment.',pending_pm:'Sent to PM for approval.',active:'✅ PTW APPROVED! Work may proceed.'};
+  toast(msg[ptw.status]||'Approved!','success');
+  if(ptw.status==='active')setTimeout(()=>autoSavePDFtoDrive(ptw),1000);
+  renderViewPTW();
+}
+function openReject(stageKey){pendingStageKey=stageKey;document.getElementById('reject-reason').value='';document.getElementById('reject-modal').classList.add('active');}
+function confirmReject(){
+  const reason=document.getElementById('reject-reason').value.trim();
+  if(!reason){toast('Please enter a rejection reason.','error');return;}
+  const ptw=DB.getPTWs().find(p=>p.id===CP.id);
+  ptw.status='rejected';ptw.rejectedBy=CU.name;ptw.rejectionReason=reason;ptw.updatedAt=new Date().toISOString();
+  DB.savePTW(ptw);CP=ptw;closeModal('reject-modal');toast('PTW rejected.','warning');renderViewPTW();
+}
+function doRevoke(){
+  const remarks=document.getElementById('close-remarks')?.value.trim()||'';
+  if(!remarks){toast('Please enter reason for revoking.','error');return;}
+  if(!confirm('Revoke this PTW? Work must stop immediately.'))return;
+  const ptw=DB.getPTWs().find(p=>p.id===CP.id);
+  ptw.status='rejected';ptw.rejectedBy=CU.name;ptw.rejectionReason='[REVOKED by PM] '+remarks;ptw.updatedAt=new Date().toISOString();
+  DB.savePTW(ptw);CP=ptw;toast('⛔ PTW Revoked. All work must stop.','error');renderViewPTW();
+}
+function doClose(){
+  if(!closeSig2){toast('Please sign before closing.','error');return;}
+  const ptw=DB.getPTWs().find(p=>p.id===CP.id);const remarks=document.getElementById('close-remarks')?.value||'';
+  ptw.stages['close']={name:CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:closeSig2,remarks};
+  ptw.status='closed';ptw.updatedAt=new Date().toISOString();
+  DB.savePTW(ptw);closeSig2=null;CP=ptw;toast('PTW closed successfully.','success');renderViewPTW();
+}
+
+function refreshGPS(ctx){
+  captureGPS(gps=>{
+    if(!gps)return;
+    const el=document.getElementById('gps-status-'+ctx);
+    if(el)el.innerHTML=`<div style="background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.3);border-radius:6px;padding:7px 12px;font-size:12px;color:var(--teal)">📍 <b>GPS:</b> ${gps.lat}, ${gps.lng} (±${gps.accuracy}m) <a href="https://maps.google.com/?q=${gps.lat},${gps.lng}" target="_blank" style="color:var(--teal)">[Map]</a></div>`;
+  });
+}
+
+// ================================================================
+// AUTO SAVE PDF TO DRIVE
+// ================================================================
+function autoSavePDFtoDrive(ptw){
+  try{
+    if(!window.jspdf)return;
+    const prev=CP;CP=ptw;
+    const allUsers=UDB.getAll();const ptwForPDF=JSON.parse(JSON.stringify(ptw));
+    if(ptwForPDF.stages)Object.keys(ptwForPDF.stages).forEach(k=>{const email=ptwForPDF.stages[k]?.email||'';const u=allUsers.find(u=>u.email?.toLowerCase()===email.toLowerCase());if(u&&u.defaultSig?.startsWith('data:image'))ptwForPDF.stages[k].signature=u.defaultSig;});
+    const {jsPDF}=window.jspdf;const doc=new jsPDF('p','mm','a4');
+    const W=210,M=14,CW=W-M*2;let y=14;
+    const navy=[10,22,40],orange=[244,98,31],gray=[90,110,140],lgray=[220,228,242],white=[255,255,255];
+    doc.setFillColor(...navy);doc.rect(0,0,W,26,'F');doc.setFillColor(...orange);doc.rect(0,23,W,3,'F');
+    doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('PERMIT TO WORK',M,11);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('Bosh Engineering Pte. Ltd.',M,18);y=34;
+    const rows=[['Ref No.',ptw.id],['Company',ptw.company||''],['Project',ptw.project||''],['Status','APPROVED'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||'']];
+    rows.forEach(([lb,vl])=>{doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');doc.text(String(vl||'').substring(0,60),M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
+    y+=5;
+    const stageKeys=['supervisor','tic','ehs','pm'];const stageTitles=['Supervisor','Trade In Charge','EHS Officer','Project Manager'];
+    stageKeys.forEach((key,i)=>{const s=ptwForPDF.stages?.[key];if(!s)return;doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text((i+1)+'. '+stageTitles[i],M+3,y+6.5);y+=13;
+    doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,20,'FD');
+    if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'JPEG',M+2,y+4,42,13);}catch(e){}}
+    doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});y+=22;});
+    doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.text(ptw.id,M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});
+    const b64=doc.output('datauristring').split(',')[1];
+    ['__pdf_if','__pdf_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
+    const iframe=document.createElement('iframe');iframe.id='__pdf_if';iframe.name='__pdf_if';iframe.style.display='none';document.body.appendChild(iframe);
+    const form=document.createElement('form');form.id='__pdf_fm';form.method='POST';form.action=APP_CONFIG.sheetsURL;form.target='__pdf_if';form.style.display='none';
+    const inp=document.createElement('input');inp.type='hidden';inp.name='data';inp.value=JSON.stringify({action:'savePDF',ptwId:ptw.id,pdfBase64:b64});
+    form.appendChild(inp);document.body.appendChild(form);form.submit();
+    setTimeout(()=>toast('☁️ PDF saved to Google Drive!','success'),2000);
+    CP=prev;
+  }catch(e){console.warn('autoSavePDFtoDrive error:',e);}
+}
+
+// ================================================================
+// PDF GENERATION
+// ================================================================
+function genPDF(){
+  if(!CP){toast('No PTW selected.','error');return;}
+  if(!window.jspdf){toast('PDF library loading, try again.','warning');return;}
+  toast('Generating PDF...','info');
+  const {jsPDF}=window.jspdf;const doc=new jsPDF('p','mm','a4');
+  const localPTWs=DB.getPTWsLocal();const localCopy=localPTWs.find(p=>p.id===CP.id);
+  const ptw=JSON.parse(JSON.stringify(CP));const allUsers=UDB.getAll();
+  if(ptw.stages)Object.keys(ptw.stages).forEach(k=>{
+    if(!ptw.stages[k])return;
+    const localSig=localCopy?.stages?.[k]?.signature;
+    if(localSig&&localSig!=='[sig]'&&localSig.startsWith('data:image')){ptw.stages[k].signature=localSig;return;}
+    const email=ptw.stages[k].email||'';
+    if(email){const u=allUsers.find(u=>u.email?.toLowerCase()===email.toLowerCase());if(u&&u.defaultSig?.startsWith('data:image')){ptw.stages[k].signature=u.defaultSig;return;}}
+  });
+  const cls=DB.getChecklists();const cl=cls[ptw.type];
+  const W=210,M=14,CW=W-M*2;let y=14;
+  const np=()=>{doc.addPage();y=14;};const cp=(n=15)=>{if(y+n>280)np();};
+  const navy=[10,22,40],orange=[244,98,31],gray=[90,110,140],lgray=[220,228,242],white=[255,255,255];
+  doc.setFillColor(...navy);doc.rect(0,0,W,26,'F');doc.setFillColor(...orange);doc.rect(0,23,W,3,'F');
+  doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('PERMIT TO WORK',M,11);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('Bosh Engineering Pte. Ltd.',M,18);
+  const sc={active:[34,197,94],closed:[107,114,128],pending_tic:[59,130,246],pending_ehs:[168,85,247],pending_pm:[20,184,166],rejected:[239,68,68]};
+  const scc=sc[ptw.status]||[107,114,128];doc.setFillColor(...scc);doc.roundedRect(W-M-32,5,32,10,2,2,'F');
+  doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text(STATUS_LABELS[ptw.status]||ptw.status,W-M-30,11.5);y=34;
+  const rows=[['Ref No.',ptw.id],['Company',ptw.company||'Bosh Engineering Pte. Ltd.'],['Project',ptw.project||''],['Status',STATUS_LABELS[ptw.status]||ptw.status],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||''],['Contact',ptw.contactNumber||'']];
+  rows.forEach(([lb,vl])=>{doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');const vt=doc.splitTextToSize(String(vl||''),CW-52);doc.text(vt[0]||'',M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
+  y+=7;
+  const secTitle=(num,title)=>{cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(num+'. '+title,M+3,y+6.5);y+=13;};
+  const sigRow=(s)=>{cp(22);if(!s){doc.setTextColor(...gray);doc.setFontSize(8);doc.text('Pending',M+2,y);y+=10;return;}
+    doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,20,'FD');
+    if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+4,42,13);}catch(e){doc.setDrawColor(...gray);doc.rect(M+2,y+4,42,13);doc.setTextColor(...gray);doc.setFontSize(7);doc.text('Signed',M+4,y+12);}}
+    else if(s.signature||s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+4,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
+    doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);doc.text(s.company||'',M+48,y+17.5);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});y+=22;};
+  if(cl){doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name,M,y);y+=7;
+    doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Checklist Item',M+2,y+5);doc.text('Result',W-M-20,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
+    cl.items.forEach((item,i)=>{const v=ptw.checklist[item.id]||'yes';const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
+      doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);doc.setTextColor(...navy);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(tl,M+2,y+5);
+      const vc=v==='yes'?[34,150,80]:v==='no'?[200,50,50]:[90,110,140];doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,W-M-22,y+5);y+=rh;});y+=5;sigRow(ptw.stages&&ptw.stages.supervisor);}
+  secTitle(1,'Permit Application - Supervisor');sigRow(ptw.stages&&ptw.stages.supervisor);
+  secTitle(2,'Verification by Trade-in-Charge');sigRow(ptw.stages&&ptw.stages.tic);
+  secTitle(3,'Assessment by EHS');sigRow(ptw.stages&&ptw.stages.ehs);
+  secTitle(4,'Inspection by Project Manager');sigRow(ptw.stages&&ptw.stages.pm);
+  if(ptw.stages&&ptw.stages.close){secTitle(5,'Close PTW');sigRow(ptw.stages.close);}
+  const tp=doc.internal.getNumberOfPages();for(let i=1;i<=tp;i++){doc.setPage(i);doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(ptw.id,M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});doc.text('PAGE '+i+' OF '+tp,W-M,293,{align:'right'});}
+  try{const blob=doc.output('blob');const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=ptw.id+'.pdf';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},3000);toast('PDF downloaded!','success');}
+  catch(e){const w=window.open('','_blank');if(w){w.document.write('<html><body style="margin:0"><iframe src="'+doc.output('datauristring')+'" style="width:100%;height:100vh;border:none"></iframe></body></html>');w.document.close();toast('PDF opened in new tab!','success');}else toast('Allow pop-ups to download PDF','warning');}
+}
+
+// ================================================================
+// ADMIN
+// ================================================================
+function renderAdmin(){
+  renderHeader('app-header-admin');
+  const users=UDB.getAll();
+  const roleColors={supervisor:'#F59E0B',tic:'#3B82F6',ehs:'#22C55E',pm:'#A855F7',admin:'#1E3A6E',project_admin:'#0D9488'};
+  const roleLabels={supervisor:'Supervisor',tic:'Trade IC',ehs:'EHS Officer',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
+  document.getElementById('admin-content').innerHTML=`
+  <div class="page-title"><div><h2>⚙ Admin Panel</h2><div class="subtitle">Manage Users, Permit Types & System</div></div></div>
+  <div class="form-card">
+    <h3>👥 User Management</h3>
+    <div class="alert alert-info" style="margin-bottom:14px">Add Supervisors, TICs, EHS Officers and Project Managers. Each logs in with their email and password.</div>
+    <table class="checklist-table" style="margin-bottom:16px">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Password</th><th>Signature</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        ${users.map(u=>`<tr>
+          <td style="font-weight:600">${u.name}</td>
+          <td style="font-size:11px;color:var(--text-muted)">${u.email}</td>
+          <td><span class="role-badge" style="background:${roleColors[u.role]||'#9CA3AF'}20;color:${roleColors[u.role]||'#9CA3AF'};border:1px solid ${roleColors[u.role]||'#9CA3AF'}40">${roleLabels[u.role]||u.role}</span></td>
+          <td style="font-size:11px">${u.company||'—'}</td>
+          <td style="font-family:monospace;font-size:13px;font-weight:600;color:var(--primary)">${u.password||'—'}</td>
+          <td style="text-align:center">${u.defaultSig?`<img src="${u.defaultSig}" style="max-height:30px;max-width:80px;border:1px solid var(--border);border-radius:4px;padding:2px;background:#fff">`:'<span style="font-size:10px;color:var(--danger)">No Sig</span>'}</td>
+          <td><span class="status-badge ${u.active===false?'status-rejected':'status-active'}">${u.active===false?'Inactive':'Active'}</span></td>
+          <td style="display:flex;gap:5px">
+            <button class="btn btn-outline btn-sm" onclick="toggleUser('${u.id}',${u.active!==false})">${u.active===false?'Enable':'Disable'}</button>
+            <button class="btn btn-outline btn-sm" onclick="editUserSig('${u.id}','${u.name}')">✏ Sig</button>
+            ${u.role!=='admin'?`<button class="btn btn-danger btn-sm" onclick="if(confirm('Delete ${u.name}?'))deleteUser('${u.id}')">Delete</button>`:''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="background:#F7FAFC;border:1px solid var(--border);border-radius:var(--radius);padding:18px">
+      <b style="font-size:13px;display:block;margin-bottom:14px">➕ Add New User</b>
+      <div class="form-row">
+        <div class="form-group"><label>Full Name *</label><input id="nu-name" type="text" placeholder="Full name"></div>
+        <div class="form-group"><label>Email *</label><input id="nu-email" type="email" placeholder="work@email.com"></div>
+        <div class="form-group"><label>Role *</label>
+          <select id="nu-role">
+            <option value="">Select Role</option>
+            <option value="project_admin">Project Admin</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="tic">Trade In Charge (TIC)</option>
+            <option value="ehs">EHS Officer</option>
+            <option value="pm">Project Manager</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Company</label><input id="nu-company" type="text" value="Bosh Engineering Pte. Ltd."></div>
+        <div class="form-group"><label>Password *</label><input id="nu-password" type="text" placeholder="Set a password"></div>
+      </div>
+      <button class="btn btn-primary" onclick="addUser()">➕ Add User</button>
+    </div>
+  </div>
+  ${CU.role==='admin'?renderPermitTypesList():''}
+  <div class="form-card">
+    <h3>⚠ Reset / Data Tools</h3>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear all PTW records?')){localStorage.removeItem('ptw_records');toast('Records cleared.','warning');renderAdmin()}">🗑 Clear PTW Records</button>
+      <button class="btn btn-outline btn-sm" onclick="if(confirm('Reset users to default?')){localStorage.removeItem('ptw_users_gs');toast('Users reset.','warning');renderAdmin()}">↺ Reset Users</button>
+    </div>
+  </div>`;
+}
+
+function renderPermitTypesList(){
+  var cls=DB.getChecklists();var html='<div class="form-card"><h3>📋 Permit Types</h3>';
+  html+='<div class="alert alert-info" style="margin-bottom:14px">Click Edit to modify checklist items.</div>';
+  Object.values(cls).forEach(function(ct){
+    var code=ct.code;var name=ct.name;var safeName=name.replace(/"/g,'&quot;');
+    html+='<div class="type-card" id="tc-'+code+'"><div class="type-card-header">';
+    html+='<div style="display:flex;align-items:center;gap:10px"><div class="ptw-type-badge type-'+code+'" style="width:36px;height:36px;font-size:11px">'+code+'</div>';
+    html+='<div><b>'+name+'</b><div style="font-size:11px;color:var(--text-muted)">'+ct.items.length+' items</div></div></div>';
+    html+='<div style="display:flex;gap:7px"><span class="status-badge status-active">Active</span>';
+    html+='<button class="btn btn-outline btn-sm" onclick="editPermitType(\''+code+'\')">✏ Edit</button>';
+    html+='<button class="btn btn-danger btn-sm" onclick="deletePermitType(\''+code+'\',\''+safeName+'\')">🗑 Delete</button></div></div>';
+    html+='<div id="edit-panel-'+code+'" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">';
+    html+='<div class="form-group"><label>Activity Name</label><input type="text" id="edit-name-'+code+'" value="'+safeName+'"></div>';
+    html+='<label style="display:block;margin-bottom:8px">Checklist Items</label><div id="edit-items-'+code+'">';
+    ct.items.forEach(function(item,i){html+='<div class="new-type-item-row" style="margin-bottom:7px"><input type="text" value="'+item.text.replace(/"/g,'&quot;')+'" id="edit-item-'+code+'-'+i+'" placeholder="Checklist item"><button class="remove-btn" onclick="removeEditItem(this)">x</button></div>';});
+    html+='</div><button class="add-row-btn" onclick="addEditItem(\''+code+'\')">+ Add Item</button>';
+    html+='<div style="display:flex;gap:9px;margin-top:12px"><button class="btn btn-primary" onclick="saveEditType(\''+code+'\')">Save</button>';
+    html+='<button class="btn btn-outline" onclick="document.getElementById(\'edit-panel-'+code+'\').style.display=\'none\'">Cancel</button></div></div></div>';
+  });
+  html+='<div style="background:#F7FAFC;border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-top:16px">';
+  html+='<b style="font-size:13px;display:block;margin-bottom:14px">➕ Add New Permit Type</b>';
+  html+='<div class="form-row"><div class="form-group"><label>Type Code * (2-5 letters)</label><input id="new-code" type="text" placeholder="e.g. CS, EW, EXC" maxlength="5"></div>';
+  html+='<div class="form-group"><label>Activity Name *</label><input id="new-name" type="text" placeholder="e.g. Confined Space Work"></div>';
+  html+='<div class="form-group"><label>Badge Color</label><input id="new-color" type="color" value="#A855F7" style="height:44px;padding:4px"></div></div>';
+  html+='<div style="margin-bottom:12px"><b>Checklist Items:</b></div>';
+  html+='<div id="new-items-list"><div class="new-type-item-row"><input type="text" class="new-item-text" placeholder="Safety check item"><button class="remove-btn" onclick="removeItem(this)">×</button></div></div>';
+  html+='<button class="add-row-btn" onclick="addItem()">+ Add Item</button>';
+  html+='<div style="margin-top:16px"><button class="btn btn-primary" onclick="saveNewType()">💾 Save Permit Type</button></div></div></div>';
+  return html;
+}
+
+function addUser(){
+  const name=document.getElementById('nu-name').value.trim();const email=document.getElementById('nu-email').value.trim();const role=document.getElementById('nu-role').value;const company=document.getElementById('nu-company').value.trim();const pw=document.getElementById('nu-password').value.trim();
+  if(!name||!email||!role||!pw){toast('Please fill all required fields.','error');return;}
+  if(UDB.getAll().find(u=>u.email.toLowerCase()===email.toLowerCase())){toast('Email already exists.','error');return;}
+  UDB.add({name,email,role,company:company||APP_CONFIG.company,password:pw,active:true});
+  toast(`✅ User ${name} added!`,'success');renderAdmin();
+}
+function toggleUser(id,isActive){UDB.update(id,{active:!isActive});renderAdmin();}
+function deleteUser(id){UDB.remove(id);toast('User deleted.','warning');renderAdmin();}
+
+function editUserSig(userId,userName){
+  const existing=document.getElementById('sig-edit-modal');if(existing)existing.remove();
+  const modal=document.createElement('div');modal.id='sig-edit-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px;width:100%;max-width:420px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
+    <h3 style="font-size:16px;margin-bottom:4px;color:var(--primary)">Upload Signature — ${userName}</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Upload PNG/JPG signature. Appears in all PDF exports.</p>
+    <div style="border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;margin-bottom:14px;cursor:pointer" onclick="document.getElementById('sig-upload-input').click()">
+      <div id="sig-upload-preview"><div style="font-size:32px">✍</div><p style="font-size:12px;color:var(--text-muted)">Click to upload signature image</p></div>
+      <input type="file" id="sig-upload-input" accept="image/*" style="display:none" onchange="previewUploadSig(this)">
+    </div>
+    <input type="hidden" id="sig-upload-data">
+    <div style="display:flex;gap:9px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('sig-edit-modal').remove()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveUserSig('${userId}')">💾 Save Signature</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+function previewUploadSig(input){if(!input.files||!input.files[0])return;const reader=new FileReader();reader.onload=function(e){document.getElementById('sig-upload-data').value=e.target.result;document.getElementById('sig-upload-preview').innerHTML='<img src="'+e.target.result+'" style="max-width:200px;max-height:80px;object-fit:contain;border:1px solid var(--border);border-radius:4px;padding:4px">';};reader.readAsDataURL(input.files[0]);}
+function saveUserSig(userId){
+  const data=document.getElementById('sig-upload-data').value;if(!data){toast('Please select a signature image.','error');return;}
+  toast('⏳ Compressing & saving...','info');
+  const img=new Image();img.onload=function(){const canvas=document.createElement('canvas');const MAX_W=300,MAX_H=120;let w=img.width,h=img.height;if(w>MAX_W){h=Math.round(h*MAX_W/w);w=MAX_W;}if(h>MAX_H){w=Math.round(w*MAX_H/h);h=MAX_H;}canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);const compressed=canvas.toDataURL('image/jpeg',0.7);
+    const users=UDB.getAll();const i=users.findIndex(u=>u.id===userId);if(i>=0){users[i].defaultSig=compressed;UDB.save(users);UDB._syncUser('saveUser',{user:users[i]});}
+    document.getElementById('sig-edit-modal').remove();toast('✅ Signature saved! Available on all devices.','success');renderAdmin();};
+  img.src=data;
+}
+
+function editPermitType(code){const panel=document.getElementById('edit-panel-'+code);const isOpen=panel.style.display!=='none';document.querySelectorAll('[id^="edit-panel-"]').forEach(p=>p.style.display='none');if(!isOpen)panel.style.display='block';}
+function addEditItem(code){const container=document.getElementById('edit-items-'+code);const row=document.createElement('div');row.className='new-type-item-row';row.style.marginBottom='7px';row.innerHTML=`<input type="text" placeholder="New checklist item"><button class="remove-btn" onclick="removeEditItem(this)">×</button>`;container.appendChild(row);}
+function removeEditItem(btn){const container=btn.closest('[id^="edit-items-"]');const rows=container.querySelectorAll('.new-type-item-row');if(rows.length>1)btn.parentElement.remove();else toast('Must keep at least one item.','warning');}
+function saveEditType(code){const cls=DB.getChecklists();if(!cls[code])return;const newName=document.getElementById('edit-name-'+code).value.trim();if(!newName){toast('Please enter a name.','error');return;}const container=document.getElementById('edit-items-'+code);const inputs=container.querySelectorAll('input[type="text"]');const newItems=[];inputs.forEach((inp,i)=>{const t=inp.value.trim();if(t)newItems.push({id:code.toLowerCase()+(i+1),text:t});});if(newItems.length===0){toast('Add at least one item.','error');return;}cls[code].name=newName;cls[code].items=newItems;DB.saveChecklists(cls);toast(`✅ "${newName}" updated!`,'success');renderAdmin();}
+function deletePermitType(code,name){const inUse=DB.getPTWs().filter(p=>p.type===code&&p.status!=='closed'&&p.status!=='rejected').length;if(inUse>0){toast(`Cannot delete — ${inUse} active PTW(s) using this type.`,'error');return;}if(!confirm(`Delete "${name}" (${code})?`))return;const cls=DB.getChecklists();delete cls[code];DB.saveChecklists(cls);toast(`🗑 "${name}" deleted.`,'success');renderAdmin();}
+function addItem(){const l=document.getElementById('new-items-list');const r=document.createElement('div');r.className='new-type-item-row';r.innerHTML=`<input type="text" class="new-item-text" placeholder="Checklist item"><button class="remove-btn" onclick="removeItem(this)">×</button>`;l.appendChild(r);}
+function removeItem(btn){const rows=document.querySelectorAll('.new-item-text');if(rows.length>1)btn.parentElement.remove();}
+function saveNewType(){const code=document.getElementById('new-code').value.trim().toUpperCase();const name=document.getElementById('new-name').value.trim();const color=document.getElementById('new-color').value;if(!code||!name){toast('Please enter code and name.','error');return;}if(code.length<2||code.length>5){toast('Code must be 2-5 letters.','error');return;}const items=[];document.querySelectorAll('.new-item-text').forEach((el,i)=>{const t=el.value.trim();if(t)items.push({id:code.toLowerCase()+(i+1),text:t});});if(items.length===0){toast('Add at least one checklist item.','error');return;}const cls=DB.getChecklists();if(cls[code]){toast('This code already exists.','error');return;}cls[code]={name,code,color,items};DB.saveChecklists(cls);toast(`✅ "${name}" (${code}) saved!`,'success');renderAdmin();}
+
+// ================================================================
+// REPORTS
+// ================================================================
+function renderReports(){
+  renderHeader('app-header-reports');
+  const ptws=DB.getPTWsLocal();
+  const today=new Date();today.setHours(0,0,0,0);
+  const weekAgo=new Date(today);weekAgo.setDate(weekAgo.getDate()-7);
+  const monthAgo=new Date(today);monthAgo.setDate(monthAgo.getDate()-30);
+  const todayPTWs=ptws.filter(p=>new Date(p.createdAt)>=today);
+  const weekPTWs=ptws.filter(p=>new Date(p.createdAt)>=weekAgo);
+  const monthPTWs=ptws.filter(p=>new Date(p.createdAt)>=monthAgo);
+  const byType={};ptws.forEach(p=>{byType[p.type]=(byType[p.type]||0)+1;});
+  const byStatus={};ptws.forEach(p=>{byStatus[p.status]=(byStatus[p.status]||0)+1;});
+  const days=[];for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);const d2=new Date(d);d2.setDate(d2.getDate()+1);const label=d.toLocaleDateString('en-SG',{weekday:'short',day:'numeric'});const count=ptws.filter(p=>{const c=new Date(p.createdAt);return c>=d&&c<d2;}).length;days.push({label,count});}
+  const maxDay=Math.max(...days.map(d=>d.count),1);
+  const cls=DB.getChecklists();
+  const typeColors={'GEN':'#3B82F6','HW':'#EF4444','WAH':'#22C55E','CS':'#A855F7','LW':'#F59E0B','EXC':'#14B8A6'};
+  const statusColors={pending_tic:'#60A5FA',pending_ehs:'#C084FC',pending_pm:'#2DD4BF',active:'#4ADE80',closed:'#9CA3AF',rejected:'#F87171'};
+  document.getElementById('reports-content').innerHTML=`
+  <div class="page-title">
+    <div><h2>📊 Reports & Analytics</h2><div class="subtitle">PTW activity summary</div></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="syncFromSheets()">🔄 Sync Latest Data</button>
+      ${CU.role==='admin'?`<button class="btn btn-sm" onclick="downloadExcel()" style="background:#1E7A1E;color:#fff">📊 Download Excel (MOM)</button>`:''}
+    </div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:22px">
+    <div class="stat-card stat-total"><div class="stat-num">${todayPTWs.length}</div><div class="stat-label">Today</div><div class="stat-accent"></div></div>
+    <div class="stat-card stat-pending"><div class="stat-num">${weekPTWs.length}</div><div class="stat-label">This Week</div><div class="stat-accent"></div></div>
+    <div class="stat-card stat-active"><div class="stat-num">${monthPTWs.length}</div><div class="stat-label">This Month</div><div class="stat-accent"></div></div>
+    <div class="stat-card stat-closed"><div class="stat-num">${ptws.length}</div><div class="stat-label">All Time</div><div class="stat-accent"></div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:16px">
+    <div class="form-card" style="margin-bottom:0">
+      <h3 style="color:var(--text-muted);font-size:13px;border:none;padding-bottom:0;margin-bottom:18px">📅 DAILY PTW SUBMISSIONS — LAST 7 DAYS</h3>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:100px;padding:0 4px">
+        ${days.map(d=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><span style="font-size:10px;color:var(--primary);font-weight:700">${d.count||''}</span><div style="width:100%;background:var(--primary);border-radius:3px 3px 0 0;height:${d.count?Math.max(6,Math.round((d.count/maxDay)*70)):4}px;opacity:${d.count?1:0.2}"></div><span style="font-size:9px;color:var(--text-muted);text-align:center;line-height:1.2">${d.label}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="form-card" style="margin-bottom:0">
+      <h3 style="color:var(--text-muted);font-size:13px;border:none;padding-bottom:0;margin-bottom:14px">🏷 PTW BY TYPE</h3>
+      ${Object.entries(byType).length===0?'<p style="color:var(--text-dim);font-size:12px">No data yet</p>':Object.entries(byType).map(([type,count])=>{const pct=Math.round((count/ptws.length)*100);const col=typeColors[type]||'#9CA3AF';return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600"><span class="ptw-type-badge type-${type}" style="width:28px;height:18px;font-size:9px;display:inline-flex;margin-right:6px">${type}</span>${cls[type]?.name||type}</span><span style="color:var(--text-muted)">${count} (${pct}%)</span></div><div style="background:var(--bg);border-radius:4px;height:7px;overflow:hidden"><div style="background:${col};height:100%;width:${pct}%;border-radius:4px"></div></div></div>`;}).join('')}
+    </div>
+    <div class="form-card" style="margin-bottom:0">
+      <h3 style="color:var(--text-muted);font-size:13px;border:none;padding-bottom:0;margin-bottom:14px">📋 PTW BY STATUS</h3>
+      ${Object.entries(byStatus).length===0?'<p style="color:var(--text-dim);font-size:12px">No data yet</p>':Object.entries(byStatus).map(([st,count])=>{const pct=Math.round((count/ptws.length)*100);const col=statusColors[st]||'#9CA3AF';return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span class="status-badge status-${st}">${STATUS_LABELS[st]||st}</span><span style="color:var(--text-muted)">${count} (${pct}%)</span></div><div style="background:var(--bg);border-radius:4px;height:7px;overflow:hidden"><div style="background:${col};height:100%;width:${pct}%;border-radius:4px"></div></div></div>`;}).join('')}
+    </div>
+  </div>
+  <div class="form-card">
+    <h3 style="color:var(--text-muted);font-size:13px;border:none;padding-bottom:0;margin-bottom:14px">🕐 RECENT ACTIVITY (LAST 10)</h3>
+    <table class="checklist-table">
+      <thead><tr><th>PTW ID</th><th>Type</th><th>Location</th><th>Submitted By</th><th>Date</th><th>Status</th></tr></thead>
+      <tbody>
+        ${ptws.slice(0,10).map(p=>`<tr style="cursor:pointer" onclick="openPTW('${p.id}');showPage('view-ptw')">
+          <td style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px">${p.id}</td>
+          <td><span class="ptw-type-badge type-${p.type}" style="width:36px;height:22px;font-size:10px">${p.type}</span></td>
+          <td style="font-size:12px">${p.location||'—'}</td>
+          <td style="font-size:12px">${p.stages?.supervisor?.name||'—'}</td>
+          <td style="font-size:11px;color:var(--text-muted)">${fmtShort(p.createdAt)}</td>
+          <td><span class="status-badge status-${p.status}">${STATUS_LABELS[p.status]||p.status}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    ${ptws.length===0?'<div class="empty-state" style="padding:30px"><p>No PTW records yet.</p></div>':''}
+  </div>`;
+}
+
+function downloadExcel(){
+  const ptws=DB.getPTWs();
+  const headers=['PTW ID','Type','Status','Company','Project','Location','Valid From','Valid To','Contact','Work Description','Submitted By','Submitted Email','Created Date','Updated Date','TIC Name','TIC Email','TIC Signed Date','EHS Name','EHS Email','EHS Signed Date','PM Name','PM Email','PM Signed Date','Closed By','Closed Email','Closed Date','GPS Lat','GPS Lng','GPS Accuracy','Workers Count','Equipment'];
+  const rows=ptws.map(p=>[p.id,p.type,STATUS_LABELS[p.status]||p.status,p.company||'',p.project||'',p.location||'',p.validityStart?new Date(p.validityStart).toLocaleString('en-SG'):'',p.validityEnd?new Date(p.validityEnd).toLocaleString('en-SG'):'',p.contactNumber||'',p.workDescription||'',p.stages?.supervisor?.name||'',p.stages?.supervisor?.email||'',p.createdAt?new Date(p.createdAt).toLocaleString('en-SG'):'',p.updatedAt?new Date(p.updatedAt).toLocaleString('en-SG'):'',p.stages?.tic?.name||'',p.stages?.tic?.email||'',p.stages?.tic?.timestamp?new Date(p.stages.tic.timestamp).toLocaleString('en-SG'):'',p.stages?.ehs?.name||'',p.stages?.ehs?.email||'',p.stages?.ehs?.timestamp?new Date(p.stages.ehs.timestamp).toLocaleString('en-SG'):'',p.stages?.pm?.name||'',p.stages?.pm?.email||'',p.stages?.pm?.timestamp?new Date(p.stages.pm.timestamp).toLocaleString('en-SG'):'',p.stages?.close?.name||'',p.stages?.close?.email||'',p.stages?.close?.timestamp?new Date(p.stages.close.timestamp).toLocaleString('en-SG'):'',p.stages?.supervisor?.gps?.lat||'',p.stages?.supervisor?.gps?.lng||'',p.stages?.supervisor?.gps?.accuracy||'',(p.workers||[]).length,p.equipment||'']);
+  const csv=[headers,...rows].map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
+  const BOM='\uFEFF';const blob=new Blob([BOM+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');const today=new Date().toISOString().split('T')[0];a.href=url;a.download='Bosh-PTW-Records-'+today+'.csv';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
+  toast('✅ Excel downloaded — '+ptws.length+' PTW records (MOM format)','success');
+}
+
+// ================================================================
+// INIT
+// ================================================================
+window.onload=()=>{
+  filterState='mytasks';
+  showPage('login');
+  UDB.loadFromSheets();
+};
+</script>
+</body>
+</html>
