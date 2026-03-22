@@ -568,9 +568,19 @@ const DB = {
     this.savePTWs(ptws);this.saveToSheets(ptw);
   },
   getNextId(type){
+    // Use global running number — never resets, counts ALL PTWs across all types
     const ptws=this.getPTWsLocal();
-    const n=ptws.filter(p=>p.type===type).length+1;
-    return `${APP_CONFIG.prefix}-${type}-${String(n).padStart(7,'0')}`;
+    // Find highest serial number ever used
+    let maxNum=0;
+    ptws.forEach(p=>{
+      const m=p.id&&p.id.match(/(\d{7})$/);
+      if(m){const n=parseInt(m[1]);if(n>maxNum)maxNum=n;}
+    });
+    // Also check localStorage counter
+    const stored=parseInt(localStorage.getItem('ptw_global_counter')||'0');
+    const next=Math.max(maxNum,stored)+1;
+    localStorage.setItem('ptw_global_counter',String(next));
+    return `${APP_CONFIG.prefix}-${type}-${String(next).padStart(7,'0')}`;
   }
 };
 
@@ -922,13 +932,32 @@ function addW(){const l=document.getElementById('workers-list');const r=document
 function removeW(btn){const rows=document.querySelectorAll('.worker-row');if(rows.length>1)btn.parentElement.remove();}
 
 function submitPTW(){
+  const type=document.getElementById('f-type').value;
+  if(!type){toast('Please select a permit type.','error');return;}
+  // Get running number from server first
+  toast('⏳ Getting PTW number...','info');
+  const s=document.createElement('script');
+  window.__ptwNumCb=function(data){
+    try{document.head.removeChild(s);}catch(e){}
+    delete window.__ptwNumCb;
+    if(data&&data.success&&data.id){
+      _submitPTWWithId(data.id);
+    } else {
+      // Fallback to local counter
+      _submitPTWWithId(DB.getNextId(type));
+    }
+  };
+  s.onerror=()=>{try{document.head.removeChild(s);}catch(e){}delete window.__ptwNumCb;_submitPTWWithId(DB.getNextId(type));};
+  s.src=APP_CONFIG.sheetsURL+'?action=getNextNumber&type='+type+'&callback=__ptwNumCb&t='+Date.now();
+  document.head.appendChild(s);
+}
+function _submitPTWWithId(ptwId){
   const type=document.getElementById('f-type').value;const location=document.getElementById('f-location').value.trim();const from=document.getElementById('f-from').value;const to=document.getElementById('f-to').value;
   const projSel=document.getElementById('f-project-id');const projVal=projSel?projSel.value:'';
   let project='',projectId='';
   if(projVal==='__custom__'||!projVal){project=document.getElementById('f-project')?.value.trim()||'';}
   else{const obj=PDB.getById(projVal);project=obj?obj.name:projSel.options[projSel.selectedIndex]?.dataset?.name||'';projectId=projVal;}
   if(!project&&!projectId){toast('Please select or enter a Project.','error');return;}
-  if(!type){toast('Please select a permit type.','error');return;}
   if(!location){toast('Please enter work location.','error');return;}
   if(!from||!to){toast('Please set validity period.','error');return;}
   const ticEl=document.getElementById('f-tic');const ticEmail=ticEl?ticEl.value:'';const ticName=ticEl?ticEl.options[ticEl.selectedIndex]?.dataset?.name||'':'';
@@ -939,7 +968,7 @@ function submitPTW(){
   const workers=[];
   document.querySelectorAll('.worker-row').forEach(row=>{const n=row.querySelector('.w-name')?.value.trim();const t=row.querySelector('.w-trade')?.value.trim();if(n)workers.push({name:n,trade:t||''});});
   const ptw={
-    id:DB.getNextId(type),type,status:'pending_tic',
+    id:ptwId,type,status:'pending_tic',
     company:CU.company,project,projectId:projectId||'',location,
     validityStart:new Date(from).toISOString(),validityEnd:new Date(to).toISOString(),
     contactNumber:document.getElementById('f-contact').value,workDescription:document.getElementById('f-desc').value,
