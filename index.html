@@ -1173,32 +1173,60 @@ function refreshGPS(ctx){
 // ================================================================
 function autoSavePDFtoDrive(ptw){
   try{
-    if(!window.jspdf)return;
+    if(!window.jspdf){setTimeout(()=>autoSavePDFtoDrive(ptw),2000);return;}
     const prev=CP;CP=ptw;
-    const allUsers=UDB.getAll();const ptwForPDF=JSON.parse(JSON.stringify(ptw));
-    if(ptwForPDF.stages)Object.keys(ptwForPDF.stages).forEach(k=>{const email=ptwForPDF.stages[k]?.email||'';const u=allUsers.find(u=>u.email?.toLowerCase()===email.toLowerCase());if(u&&u.defaultSig?.startsWith('data:image'))ptwForPDF.stages[k].signature=u.defaultSig;});
+    // Build full PDF using same genPDF logic
     const {jsPDF}=window.jspdf;const doc=new jsPDF('p','mm','a4');
+    const localPTWs=DB.getPTWsLocal();const localCopy=localPTWs.find(p=>p.id===ptw.id);
+    const ptwForPDF=JSON.parse(JSON.stringify(ptw));const allUsers=UDB.getAll();
+    const cls=DB.getChecklists();const cl=cls[ptwForPDF.type];
+    if(ptwForPDF.stages)Object.keys(ptwForPDF.stages).forEach(k=>{
+      if(!ptwForPDF.stages[k])return;
+      const localSig=localCopy?.stages?.[k]?.signature;
+      if(localSig&&localSig!=='[sig]'&&localSig.startsWith('data:image')){ptwForPDF.stages[k].signature=localSig;return;}
+      const email=ptwForPDF.stages[k].email||'';
+      if(email){const u=allUsers.find(u=>u.email?.toLowerCase()===email.toLowerCase());if(u&&u.defaultSig?.startsWith('data:image')){ptwForPDF.stages[k].signature=u.defaultSig;}}
+    });
     const W=210,M=14,CW=W-M*2;let y=14;
+    const np=()=>{doc.addPage();y=14;};const cp=(n=15)=>{if(y+n>280)np();};
     const navy=[10,22,40],orange=[244,98,31],gray=[90,110,140],lgray=[220,228,242],white=[255,255,255];
     doc.setFillColor(...navy);doc.rect(0,0,W,26,'F');doc.setFillColor(...orange);doc.rect(0,23,W,3,'F');
     doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('PERMIT TO WORK',M,11);
-    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('Bosh Engineering Pte. Ltd.',M,18);y=34;
-    const rows=[['Ref No.',ptw.id],['Company',ptw.company||''],['Project',ptw.project||''],['Status','APPROVED'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||'']];
-    rows.forEach(([lb,vl])=>{doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');doc.text(String(vl||'').substring(0,60),M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
-    y+=5;
-    const stageKeys=['supervisor','tic','ehs','pm'];const stageTitles=['Supervisor','Trade In Charge','EHS Officer','Project Manager'];
-    stageKeys.forEach((key,i)=>{const s=ptwForPDF.stages?.[key];if(!s)return;doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text((i+1)+'. '+stageTitles[i],M+3,y+6.5);y+=13;
-    doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,20,'FD');
-    if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'JPEG',M+2,y+4,42,13);}catch(e){}}
-    doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});y+=22;});
-    doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.text(ptw.id,M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('Bosh Engineering Pte. Ltd.',M,18);
+    doc.setFillColor(...[34,197,94]);doc.roundedRect(W-M-32,5,32,10,2,2,'F');
+    doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('APPROVED',W-M-30,11.5);
+    y=34;
+    const rows=[['Ref No.',ptw.id],['Company',ptw.company||'Bosh Engineering Pte. Ltd.'],['Project',ptw.project||''],['Status','Active / Approved'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||''],['Contact',ptw.contactNumber||'']];
+    rows.forEach(([lb,vl])=>{doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');const vt=doc.splitTextToSize(String(vl||''),CW-52);doc.text(vt[0]||'',M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
+    y+=7;
+    const secTitle=(num,title)=>{cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(num+'. '+title,M+3,y+6.5);y+=13;};
+    const sigRow=(s)=>{cp(22);if(!s){doc.setTextColor(...gray);doc.setFontSize(8);doc.text('Pending',M+2,y);y+=10;return;}
+      doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,20,'FD');
+      if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+4,42,13);}catch(e){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,42,13,'F');doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}}
+      else if(s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+4,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
+      doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);doc.text(s.company||'',M+48,y+17.5);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});y+=22;};
+    if(cl){doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name,M,y);y+=7;
+      doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Checklist Item',M+2,y+5);doc.text('Result',W-M-20,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
+      cl.items.forEach((item,i)=>{const v=ptwForPDF.checklist?.[item.id]||'yes';const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
+        doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);doc.setTextColor(...navy);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(tl,M+2,y+5);
+        const vc=v==='yes'?[34,150,80]:v==='no'?[200,50,50]:[90,110,140];doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,W-M-22,y+5);y+=rh;});y+=5;sigRow(ptwForPDF.stages?.supervisor);}
+    secTitle(1,'Permit Application - Supervisor');sigRow(ptwForPDF.stages?.supervisor);
+    secTitle(2,'Verification by Trade-in-Charge');sigRow(ptwForPDF.stages?.tic);
+    secTitle(3,'Assessment by EHS');sigRow(ptwForPDF.stages?.ehs);
+    secTitle(4,'Inspection by Project Manager');sigRow(ptwForPDF.stages?.pm);
+    if(ptwForPDF.stages?.close){secTitle(5,'Close PTW');sigRow(ptwForPDF.stages.close);}
+    const tp=doc.internal.getNumberOfPages();for(let i=1;i<=tp;i++){doc.setPage(i);doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(ptw.id,M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});doc.text('PAGE '+i+' OF '+tp,W-M,293,{align:'right'});}
     const b64=doc.output('datauristring').split(',')[1];
+    // Send PDF to Drive AND trigger approval email
+    const ptwForEmail=JSON.parse(JSON.stringify(ptw));
+    if(ptwForEmail.stages)Object.keys(ptwForEmail.stages).forEach(k=>{if(ptwForEmail.stages[k]?.signature)ptwForEmail.stages[k].signature='[sig]';});
     ['__pdf_if','__pdf_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
     const iframe=document.createElement('iframe');iframe.id='__pdf_if';iframe.name='__pdf_if';iframe.style.display='none';document.body.appendChild(iframe);
     const form=document.createElement('form');form.id='__pdf_fm';form.method='POST';form.action=APP_CONFIG.sheetsURL;form.target='__pdf_if';form.style.display='none';
-    const inp=document.createElement('input');inp.type='hidden';inp.name='data';inp.value=JSON.stringify({action:'savePDF',ptwId:ptw.id,pdfBase64:b64});
+    const inp=document.createElement('input');inp.type='hidden';inp.name='data';
+    inp.value=JSON.stringify({action:'savePDF',ptwId:ptw.id,pdfBase64:b64,ptw:ptwForEmail});
     form.appendChild(inp);document.body.appendChild(form);form.submit();
-    setTimeout(()=>toast('☁️ PDF saved to Google Drive!','success'),2000);
+    setTimeout(()=>toast('☁️ PDF saved to Drive & email sent!','success'),2500);
     CP=prev;
   }catch(e){console.warn('autoSavePDFtoDrive error:',e);}
 }
