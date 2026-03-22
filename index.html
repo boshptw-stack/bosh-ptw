@@ -1174,66 +1174,88 @@ function refreshGPS(ctx){
 function autoSavePDFtoDrive(ptw){
   try{
     if(!window.jspdf){setTimeout(()=>autoSavePDFtoDrive(ptw),2000);return;}
-    const prev=CP;CP=ptw;
-    // Build full PDF using same genPDF logic
+    toast('⏳ Generating approved PDF...','info');
     const {jsPDF}=window.jspdf;const doc=new jsPDF('p','mm','a4');
     const localPTWs=DB.getPTWsLocal();const localCopy=localPTWs.find(p=>p.id===ptw.id);
-    const ptwForPDF=JSON.parse(JSON.stringify(ptw));const allUsers=UDB.getAll();
+    const ptwForPDF=JSON.parse(JSON.stringify(ptw));
+    const allUsers=UDB.getAll();
     const cls=DB.getChecklists();const cl=cls[ptwForPDF.type];
+    // Inject signatures from local storage or user defaults
     if(ptwForPDF.stages)Object.keys(ptwForPDF.stages).forEach(k=>{
       if(!ptwForPDF.stages[k])return;
       const localSig=localCopy?.stages?.[k]?.signature;
       if(localSig&&localSig!=='[sig]'&&localSig.startsWith('data:image')){ptwForPDF.stages[k].signature=localSig;return;}
       const email=ptwForPDF.stages[k].email||'';
-      if(email){const u=allUsers.find(u=>u.email?.toLowerCase()===email.toLowerCase());if(u&&u.defaultSig?.startsWith('data:image')){ptwForPDF.stages[k].signature=u.defaultSig;}}
+      if(email){const u=allUsers.find(u=>u.email?.toLowerCase()===email.toLowerCase());if(u&&u.defaultSig?.startsWith('data:image'))ptwForPDF.stages[k].signature=u.defaultSig;}
     });
     const W=210,M=14,CW=W-M*2;let y=14;
     const np=()=>{doc.addPage();y=14;};const cp=(n=15)=>{if(y+n>280)np();};
     const navy=[10,22,40],orange=[244,98,31],gray=[90,110,140],lgray=[220,228,242],white=[255,255,255];
+    // Header
     doc.setFillColor(...navy);doc.rect(0,0,W,26,'F');doc.setFillColor(...orange);doc.rect(0,23,W,3,'F');
     doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('PERMIT TO WORK',M,11);
     doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('Bosh Engineering Pte. Ltd.',M,18);
-    doc.setFillColor(...[34,197,94]);doc.roundedRect(W-M-32,5,32,10,2,2,'F');
+    doc.setFillColor(34,197,94);doc.roundedRect(W-M-32,5,32,10,2,2,'F');
     doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('APPROVED',W-M-30,11.5);
     y=34;
-    const rows=[['Ref No.',ptw.id],['Company',ptw.company||'Bosh Engineering Pte. Ltd.'],['Project',ptw.project||''],['Status','Active / Approved'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||''],['Contact',ptw.contactNumber||'']];
-    rows.forEach(([lb,vl])=>{doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');const vt=doc.splitTextToSize(String(vl||''),CW-52);doc.text(vt[0]||'',M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
+    // Details table
+    const rows=[['Ref No.',ptw.id],['Company',ptw.company||'Bosh Engineering Pte. Ltd.'],['Project',ptw.project||''],['Status','Active / Approved'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||''],['Contact',ptw.contactNumber||''],['Work Desc.',ptw.workDescription||'']];
+    rows.forEach(([lb,vl])=>{if(!vl)return;doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');const vt=doc.splitTextToSize(String(vl),CW-52);doc.text(vt[0]||'',M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
     y+=7;
+    // Workers
+    if(ptw.workers&&ptw.workers.length>0){cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
+      ptw.workers.forEach(w=>{cp(7);doc.setFillColor(250,252,255);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(w.name||'',M+3,y+5);doc.setFont('helvetica','normal');doc.setTextColor(...gray);doc.text(w.trade||'',M+70,y+5);y+=7;});y+=5;}
+    // Checklist
+    if(cl&&ptwForPDF.checklist&&Object.keys(ptwForPDF.checklist).length>0){
+      cp(12);doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;
+      doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name+' Safety Checklist',M,y);y+=8;
+      doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Safety Check Item',M+2,y+5);doc.text('Result',W-M-22,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
+      cl.items.forEach((item,i)=>{
+        const v=ptwForPDF.checklist[item.id]||'yes';
+        const vl={yes:'✓ Yes',no:'✗ No',na:'N/A',others:'Others'}[v]||v;
+        const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
+        doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);
+        doc.setTextColor(...navy);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(tl,M+2,y+5);
+        const vc=v==='yes'?[34,150,80]:v==='no'?[200,50,50]:[90,110,140];doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,W-M-25,y+5);y+=rh;
+      });y+=6;
+    }
+    // Stage helper
     const secTitle=(num,title)=>{cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(num+'. '+title,M+3,y+6.5);y+=13;};
-    const sigRow=(s)=>{cp(22);if(!s){doc.setTextColor(...gray);doc.setFontSize(8);doc.text('Pending',M+2,y);y+=10;return;}
-      doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,20,'FD');
-      if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+4,42,13);}catch(e){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,42,13,'F');doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}}
-      else if(s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+4,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
-      doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);doc.text(s.company||'',M+48,y+17.5);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});y+=22;};
-    if(cl){doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name,M,y);y+=7;
-      doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Checklist Item',M+2,y+5);doc.text('Result',W-M-20,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
-      cl.items.forEach((item,i)=>{const v=ptwForPDF.checklist?.[item.id]||'yes';const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
-        doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);doc.setTextColor(...navy);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(tl,M+2,y+5);
-        const vc=v==='yes'?[34,150,80]:v==='no'?[200,50,50]:[90,110,140];doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,W-M-22,y+5);y+=rh;});y+=5;sigRow(ptwForPDF.stages?.supervisor);}
-    secTitle(1,'Permit Application - Supervisor');sigRow(ptwForPDF.stages?.supervisor);
+    const sigRow=(s)=>{cp(24);if(!s){doc.setTextColor(...gray);doc.setFontSize(8);doc.text('Pending',M+2,y);y+=10;return;}
+      doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,22,'FD');
+      if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+5,42,13);}catch(e){doc.setFillColor(236,253,243);doc.rect(M+2,y+5,42,13,'F');doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}}
+      else if(s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+5,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+5,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
+      doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+9);
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);
+      doc.text(s.email||'',M+48,y+14);doc.text(s.company||'',M+48,y+18.5);
+      if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+9,{align:'right'});
+      if(s.gps&&s.gps.lat)doc.text('GPS: '+s.gps.lat+', '+s.gps.lng,M+48,y+18.5);
+      if(s.remarks&&s.remarks.trim()){doc.setTextColor(...orange);doc.text('Remarks: '+s.remarks,M+2,y+20);}
+      y+=24;};
+    // All stages
+    secTitle(1,'Permit Application — Supervisor');sigRow(ptwForPDF.stages?.supervisor);
     secTitle(2,'Verification by Trade-in-Charge');sigRow(ptwForPDF.stages?.tic);
-    secTitle(3,'Assessment by EHS');sigRow(ptwForPDF.stages?.ehs);
-    secTitle(4,'Inspection by Project Manager');sigRow(ptwForPDF.stages?.pm);
-    if(ptwForPDF.stages?.close){secTitle(5,'Close PTW');sigRow(ptwForPDF.stages.close);}
-    const tp=doc.internal.getNumberOfPages();for(let i=1;i<=tp;i++){doc.setPage(i);doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(ptw.id,M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});doc.text('PAGE '+i+' OF '+tp,W-M,293,{align:'right'});}
+    secTitle(3,'Assessment by EHS Officer');sigRow(ptwForPDF.stages?.ehs);
+    secTitle(4,'Final Approval by Project Manager');sigRow(ptwForPDF.stages?.pm);
+    if(ptwForPDF.stages?.close){secTitle(5,'PTW Closed');sigRow(ptwForPDF.stages.close);}
+    // Page footer
+    const tp=doc.internal.getNumberOfPages();
+    for(let i=1;i<=tp;i++){doc.setPage(i);doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(ptw.id,M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});doc.text('PAGE '+i+' OF '+tp,W-M,293,{align:'right'});}
+    // Send to Apps Script: save to Drive + trigger email
     const b64=doc.output('datauristring').split(',')[1];
-    // Send PDF to Drive AND trigger approval email
     const ptwForEmail=JSON.parse(JSON.stringify(ptw));
     if(ptwForEmail.stages)Object.keys(ptwForEmail.stages).forEach(k=>{if(ptwForEmail.stages[k]?.signature)ptwForEmail.stages[k].signature='[sig]';});
     ['__pdf_if','__pdf_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
     const iframe=document.createElement('iframe');iframe.id='__pdf_if';iframe.name='__pdf_if';iframe.style.display='none';document.body.appendChild(iframe);
     const form=document.createElement('form');form.id='__pdf_fm';form.method='POST';form.action=APP_CONFIG.sheetsURL;form.target='__pdf_if';form.style.display='none';
     const inp=document.createElement('input');inp.type='hidden';inp.name='data';
-    inp.value=JSON.stringify({action:'savePDF',ptwId:ptw.id,pdfBase64:b64,ptw:ptwForEmail});
+    inp.value=JSON.stringify({action:'saveApprovedPDF',ptwId:ptw.id,pdfBase64:b64,ptw:ptwForEmail});
     form.appendChild(inp);document.body.appendChild(form);form.submit();
-    setTimeout(()=>toast('☁️ PDF saved to Drive & email sent!','success'),2500);
-    CP=prev;
-  }catch(e){console.warn('autoSavePDFtoDrive error:',e);}
+    setTimeout(()=>toast('☁️ PDF saved to Drive! Emails sent to Supervisor & EHS 📧','success'),3000);
+  }catch(e){console.warn('autoSavePDFtoDrive error:',e);toast('PDF save error: '+e.message,'error');}
 }
 
-// ================================================================
-// PDF GENERATION
-// ================================================================
+
 function genPDF(){
   if(!CP){toast('No PTW selected.','error');return;}
   if(!window.jspdf){toast('PDF library loading, try again.','warning');return;}
