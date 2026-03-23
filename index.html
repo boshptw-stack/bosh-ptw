@@ -568,19 +568,20 @@ const DB = {
     this.savePTWs(ptws);this.saveToSheets(ptw);
   },
   getNextId(type){
-    // Use global running number — never resets, counts ALL PTWs across all types
+    // Per-type running number: GEN-01, GEN-02, HW-01, HW-02...
     const ptws=this.getPTWsLocal();
-    // Find highest serial number ever used
     let maxNum=0;
     ptws.forEach(p=>{
-      const m=p.id&&p.id.match(/(\d{7})$/);
-      if(m){const n=parseInt(m[1]);if(n>maxNum)maxNum=n;}
+      if(!p.id)return;
+      // Match both old format (0000001) and new format (01,02...)
+      const mNew=p.id.match(new RegExp('-'+type+'-(\\d+)$'));
+      if(mNew){const n=parseInt(mNew[1]);if(n>maxNum)maxNum=n;}
     });
-    // Also check localStorage counter
-    const stored=parseInt(localStorage.getItem('ptw_global_counter')||'0');
+    const storeKey='ptw_counter_'+type;
+    const stored=parseInt(localStorage.getItem(storeKey)||'0');
     const next=Math.max(maxNum,stored)+1;
-    localStorage.setItem('ptw_global_counter',String(next));
-    return `${APP_CONFIG.prefix}-${type}-${String(next).padStart(7,'0')}`;
+    localStorage.setItem(storeKey,String(next));
+    return APP_CONFIG.prefix+'-'+type+'-'+String(next).padStart(2,'0');
   }
 };
 
@@ -834,7 +835,8 @@ function renderNewPTW(){
   const df=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T08:00`;
   const dt=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T20:00`;
   newSig=null;
-  if(CU.role==='supervisor'||CU.role==='project_admin')captureGPS(gps=>{CU_GPS=gps;});
+  // Auto capture GPS immediately on form open
+  captureGPS(gps=>{CU_GPS=gps;if(gps){const el=document.getElementById('gps-auto-display');if(el)el.innerHTML='<span style="color:var(--success);font-size:12px">📍 GPS: '+gps.lat+', '+gps.lng+' (±'+gps.accuracy+'m) <a href=\'https://maps.google.com/?q='+gps.lat+','+gps.lng+'\' target=\'_blank\' style=\'color:var(--teal)\'>View Map</a></span>';}});
   const myProjects=PDB.getForUser(CU.uid,CU.role,CU.email).filter(p=>p.status==='active');
   document.getElementById('new-ptw-content').innerHTML=`
   <div class="page-title"><div><h2>New Permit To Work</h2></div></div>
@@ -902,8 +904,9 @@ function renderNewPTW(){
         <div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email}</div><div class="sig-time">Signed with Saved Signature</div></div>
       </div>
     </div>
+    <div id="gps-auto-display" style="margin-bottom:10px;padding:8px 12px;background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.25);border-radius:6px;font-size:12px;color:var(--text-muted)">📍 Capturing GPS location automatically...</div>
     <div style="display:flex;gap:9px;flex-wrap:wrap">
-      <button class="btn btn-outline" onclick="refreshGPS('new')">📍 Get GPS</button>
+      <button class="btn btn-outline" onclick="refreshGPSNew()">🔄 Refresh GPS</button>
       <button class="btn btn-outline" onclick="openSig('new')">✍ Sign Declaration</button>
     </div>
   </div>
@@ -941,9 +944,11 @@ function submitPTW(){
     try{document.head.removeChild(s);}catch(e){}
     delete window.__ptwNumCb;
     if(data&&data.success&&data.id){
+      // Update local counter to match server
+      const storeKey='ptw_counter_'+type;
+      localStorage.setItem(storeKey,String(data.number));
       _submitPTWWithId(data.id);
     } else {
-      // Fallback to local counter
       _submitPTWWithId(DB.getNextId(type));
     }
   };
@@ -1196,6 +1201,13 @@ function refreshGPS(ctx){
     if(el)el.innerHTML=`<div style="background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.3);border-radius:6px;padding:7px 12px;font-size:12px;color:var(--teal)">📍 <b>GPS:</b> ${gps.lat}, ${gps.lng} (±${gps.accuracy}m) <a href="https://maps.google.com/?q=${gps.lat},${gps.lng}" target="_blank" style="color:var(--teal)">[Map]</a></div>`;
   });
 }
+function refreshGPSNew(){
+  captureGPS(gps=>{
+    if(!gps)return;
+    const el=document.getElementById('gps-auto-display');
+    if(el)el.innerHTML='<span style="color:var(--success);font-size:12px">📍 GPS: '+gps.lat+', '+gps.lng+' (±'+gps.accuracy+'m) <a href="https://maps.google.com/?q='+gps.lat+','+gps.lng+'" target="_blank" style="color:var(--teal)">View Map</a></span>';
+  });
+}
 
 // ================================================================
 // AUTO SAVE PDF TO DRIVE
@@ -1258,7 +1270,8 @@ function autoSavePDFtoDrive(ptw){
       doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);
       doc.text(s.email||'',M+48,y+14);doc.text(s.company||'',M+48,y+18.5);
       if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+9,{align:'right'});
-      if(s.gps&&s.gps.lat)doc.text('GPS: '+s.gps.lat+', '+s.gps.lng,M+48,y+18.5);
+      // GPS shown separately below signature box
+
       if(s.remarks&&s.remarks.trim()){doc.setTextColor(...orange);doc.text('Remarks: '+s.remarks,M+2,y+20);}
       y+=24;};
     // All stages
