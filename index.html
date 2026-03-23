@@ -937,8 +937,16 @@ function removeW(btn){const rows=document.querySelectorAll('.worker-row');if(row
 function submitPTW(){
   const type=document.getElementById('f-type').value;
   if(!type){toast('Please select a permit type.','error');return;}
-  // Get running number from server first
-  toast('⏳ Getting PTW number...','info');
+  // Ensure GPS is captured before submitting
+  if(!CU_GPS||!CU_GPS.lat){
+    toast('⏳ Getting GPS & PTW number...','info');
+    captureGPS(gps=>{CU_GPS=gps;_getPTWNumber(type);});
+  } else {
+    toast('⏳ Getting PTW number...','info');
+    _getPTWNumber(type);
+  }
+}
+function _getPTWNumber(type){
   const s=document.createElement('script');
   window.__ptwNumCb=function(data){
     try{document.head.removeChild(s);}catch(e){}
@@ -1263,17 +1271,21 @@ function autoSavePDFtoDrive(ptw){
     // Stage helper
     const secTitle=(num,title)=>{cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(num+'. '+title,M+3,y+6.5);y+=13;};
     const sigRow=(s)=>{cp(24);if(!s){doc.setTextColor(...gray);doc.setFontSize(8);doc.text('Pending',M+2,y);y+=10;return;}
-      doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,22,'FD');
+      const boxH=((s.gps&&s.gps.lat)?28:22);doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,boxH,'FD');
       if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+5,42,13);}catch(e){doc.setFillColor(236,253,243);doc.rect(M+2,y+5,42,13,'F');doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}}
       else if(s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+5,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+5,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
       doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+9);
       doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);
       doc.text(s.email||'',M+48,y+14);doc.text(s.company||'',M+48,y+18.5);
       if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+9,{align:'right'});
-      // GPS shown separately below signature box
-
-      if(s.remarks&&s.remarks.trim()){doc.setTextColor(...orange);doc.text('Remarks: '+s.remarks,M+2,y+20);}
-      y+=24;};
+      // GPS coordinates — shown in teal below name/email
+      if(s.gps&&s.gps.lat){
+        doc.setFillColor(232,248,246);doc.rect(M+2,y+20,CW-4,6,'F');
+        doc.setTextColor(13,148,136);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+        doc.text('GPS Location: Lat '+String(s.gps.lat)+'  Lng '+String(s.gps.lng)+'   Accuracy: +-'+String(s.gps.accuracy)+'m',M+4,y+24);
+      }
+      if(s.remarks&&s.remarks.trim()){doc.setTextColor(...orange);doc.setFontSize(7.5);doc.text('Remarks: '+s.remarks,M+4,y+(s.gps&&s.gps.lat?27:22));}
+      y+=(s.gps&&s.gps.lat?30:24);};
     // All stages
     secTitle(1,'Permit Application — Supervisor');sigRow(ptwForPDF.stages?.supervisor);
     secTitle(2,'Verification by Trade-in-Charge');sigRow(ptwForPDF.stages?.tic);
@@ -1330,7 +1342,9 @@ function genPDF(){
     doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,20,'FD');
     if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+4,42,13);}catch(e){doc.setDrawColor(...gray);doc.rect(M+2,y+4,42,13);doc.setTextColor(...gray);doc.setFontSize(7);doc.text('Signed',M+4,y+12);}}
     else if(s.signature||s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+4,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
-    doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);doc.text(s.company||'',M+48,y+17.5);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});y+=22;};
+    doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);doc.text(s.company||'',M+48,y+17.5);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});
+    if(s.gps&&s.gps.lat){doc.setFillColor(232,248,246);doc.rect(M,y+20,CW,6,'F');doc.setTextColor(13,148,136);doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.text('GPS: Lat '+String(s.gps.lat)+'  Lng '+String(s.gps.lng)+'  Accuracy: +-'+String(s.gps.accuracy)+'m',M+3,y+24);}
+    y+=(s.gps&&s.gps.lat?28:22);};
   if(cl){doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name,M,y);y+=7;
     doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Checklist Item',M+2,y+5);doc.text('Result',W-M-20,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
     cl.items.forEach((item,i)=>{const v=ptw.checklist[item.id]||'yes';const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
