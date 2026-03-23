@@ -836,7 +836,19 @@ function renderNewPTW(){
   const dt=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T20:00`;
   newSig=null;
   // Auto capture GPS immediately on form open
-  captureGPS(gps=>{CU_GPS=gps;if(gps){const el=document.getElementById('gps-auto-display');if(el)el.innerHTML='<span style="color:var(--success);font-size:12px">📍 GPS: '+gps.lat+', '+gps.lng+' (±'+gps.accuracy+'m) <a href=\'https://maps.google.com/?q='+gps.lat+','+gps.lng+'\' target=\'_blank\' style=\'color:var(--teal)\'>View Map</a></span>';}});
+  captureGPS(gps=>{
+    CU_GPS=gps;
+    const spin=document.getElementById('gps-spinner');
+    const txt=document.getElementById('gps-text');
+    const box=document.getElementById('gps-auto-display');
+    if(spin)spin.style.display='none';
+    if(gps){
+      if(box){box.style.background='rgba(13,148,136,.12)';box.style.borderColor='var(--teal)';}
+      if(txt)txt.innerHTML='<b style="color:var(--teal)">✅ GPS Ready:</b> <span style="color:var(--text);font-family:monospace">'+gps.lat+', '+gps.lng+'</span> <span style="color:var(--text-muted)">(±'+gps.accuracy+'m)</span> <a href="https://maps.google.com/?q='+gps.lat+','+gps.lng+'" target="_blank" style="color:var(--teal);font-weight:bold">📍 Map</a>';
+    } else {
+      if(txt)txt.innerHTML='<span style="color:var(--warning)">⚠ GPS unavailable — PTW will be saved without GPS coordinates.</span>';
+    }
+  });
   const myProjects=PDB.getForUser(CU.uid,CU.role,CU.email).filter(p=>p.status==='active');
   document.getElementById('new-ptw-content').innerHTML=`
   <div class="page-title"><div><h2>New Permit To Work</h2></div></div>
@@ -904,7 +916,11 @@ function renderNewPTW(){
         <div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email}</div><div class="sig-time">Signed with Saved Signature</div></div>
       </div>
     </div>
-    <div id="gps-auto-display" style="margin-bottom:10px;padding:8px 12px;background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.25);border-radius:6px;font-size:12px;color:var(--text-muted)">📍 Capturing GPS location automatically...</div>
+    <div id="gps-auto-display" style="margin-bottom:10px;padding:10px 14px;background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.25);border-radius:6px;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px">
+      <div id="gps-spinner" style="width:14px;height:14px;border:2px solid rgba(13,148,136,.3);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></div>
+      <span id="gps-text">Capturing GPS location automatically...</span>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     <div style="display:flex;gap:9px;flex-wrap:wrap">
       <button class="btn btn-outline" onclick="refreshGPSNew()">🔄 Refresh GPS</button>
       <button class="btn btn-outline" onclick="openSig('new')">✍ Sign Declaration</button>
@@ -1210,10 +1226,16 @@ function refreshGPS(ctx){
   });
 }
 function refreshGPSNew(){
+  const txt=document.getElementById('gps-text');
+  const spin=document.getElementById('gps-spinner');
+  const box=document.getElementById('gps-auto-display');
+  if(txt)txt.textContent='Refreshing GPS...';
+  if(spin)spin.style.display='block';
   captureGPS(gps=>{
-    if(!gps)return;
-    const el=document.getElementById('gps-auto-display');
-    if(el)el.innerHTML='<span style="color:var(--success);font-size:12px">📍 GPS: '+gps.lat+', '+gps.lng+' (±'+gps.accuracy+'m) <a href="https://maps.google.com/?q='+gps.lat+','+gps.lng+'" target="_blank" style="color:var(--teal)">View Map</a></span>';
+    if(spin)spin.style.display='none';
+    if(!gps){if(txt)txt.innerHTML='<span style="color:var(--danger)">❌ GPS unavailable. PTW will be saved without GPS.</span>';return;}
+    if(box){box.style.background='rgba(13,148,136,.12)';box.style.borderColor='var(--teal)';}
+    if(txt)txt.innerHTML='<b style="color:var(--teal)">✅ GPS Ready:</b> <span style="color:var(--text);font-family:monospace">'+gps.lat+', '+gps.lng+'</span> <span style="color:var(--text-muted)">(±'+gps.accuracy+'m)</span> <a href="https://maps.google.com/?q='+gps.lat+','+gps.lng+'" target="_blank" style="color:var(--teal);font-weight:bold">📍 Map</a>';
   });
 }
 
@@ -1271,21 +1293,30 @@ function autoSavePDFtoDrive(ptw){
     // Stage helper
     const secTitle=(num,title)=>{cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(num+'. '+title,M+3,y+6.5);y+=13;};
     const sigRow=(s)=>{cp(24);if(!s){doc.setTextColor(...gray);doc.setFontSize(8);doc.text('Pending',M+2,y);y+=10;return;}
-      const boxH=((s.gps&&s.gps.lat)?28:22);doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,boxH,'FD');
-      if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+5,42,13);}catch(e){doc.setFillColor(236,253,243);doc.rect(M+2,y+5,42,13,'F');doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}}
-      else if(s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+5,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+5,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
-      doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+9);
-      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);
-      doc.text(s.email||'',M+48,y+14);doc.text(s.company||'',M+48,y+18.5);
-      if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+9,{align:'right'});
-      // GPS coordinates — shown in teal below name/email
-      if(s.gps&&s.gps.lat){
-        doc.setFillColor(232,248,246);doc.rect(M+2,y+20,CW-4,6,'F');
-        doc.setTextColor(13,148,136);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
-        doc.text('GPS Location: Lat '+String(s.gps.lat)+'  Lng '+String(s.gps.lng)+'   Accuracy: +-'+String(s.gps.accuracy)+'m',M+4,y+24);
-      }
-      if(s.remarks&&s.remarks.trim()){doc.setTextColor(...orange);doc.setFontSize(7.5);doc.text('Remarks: '+s.remarks,M+4,y+(s.gps&&s.gps.lat?27:22));}
-      y+=(s.gps&&s.gps.lat?30:24);};
+      // GPS row always shown — 30px height
+    const hasGPS=!!(s.gps&&s.gps.lat);
+    const boxH=hasGPS?32:24;
+    cp(boxH+4);
+    doc.setFillColor(248,250,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,boxH,'FD');
+    // Signature image
+    if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+4,40,14);}catch(e){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,40,14,'F');doc.setTextColor(34,150,80);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+3,y+12);}}
+    else if(s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,40,14,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+4,40,14);doc.setTextColor(34,150,80);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+3,y+12);}
+    // Name/email/company/time
+    doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+46,y+8);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);
+    doc.text(s.email||'',M+46,y+13);
+    doc.text(s.company||'',M+46,y+17.5);
+    if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});
+    if(s.remarks&&s.remarks.trim()){doc.setTextColor(...orange);doc.setFontSize(7);doc.text('Remarks: '+s.remarks,M+46,y+21);}
+    // GPS row — always render, show "Not Available" if missing
+    const gpsText=hasGPS?('Lat: '+String(s.gps.lat)+'   Lng: '+String(s.gps.lng)+'   Accuracy: +-'+String(s.gps.accuracy)+'m'):'GPS: Not Available';
+    const gpsCol=hasGPS?[13,148,136]:[180,90,90];
+    doc.setFillColor(hasGPS?232:250,hasGPS?248:235,hasGPS?246:235);
+    doc.rect(M,y+boxH-8,CW,8,'F');
+    doc.setDrawColor(...gpsCol);doc.line(M,y+boxH-8,M+CW,y+boxH-8);
+    doc.setTextColor(...gpsCol);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+    doc.text('GPS Location: '+gpsText,M+3,y+boxH-3);
+    y+=boxH+3;};
     // All stages
     secTitle(1,'Permit Application — Supervisor');sigRow(ptwForPDF.stages?.supervisor);
     secTitle(2,'Verification by Trade-in-Charge');sigRow(ptwForPDF.stages?.tic);
@@ -1343,8 +1374,15 @@ function genPDF(){
     if(s.signature&&s.signature.startsWith('data:image')){try{doc.addImage(s.signature,'PNG',M+2,y+4,42,13);}catch(e){doc.setDrawColor(...gray);doc.rect(M+2,y+4,42,13);doc.setTextColor(...gray);doc.setFontSize(7);doc.text('Signed',M+4,y+12);}}
     else if(s.signature||s.name){doc.setFillColor(236,253,243);doc.rect(M+2,y+4,42,13,'F');doc.setDrawColor(34,150,80);doc.rect(M+2,y+4,42,13);doc.setTextColor(34,150,80);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Digitally Signed',M+4,y+12);}
     doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);doc.text(s.company||'',M+48,y+17.5);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});
-    if(s.gps&&s.gps.lat){doc.setFillColor(232,248,246);doc.rect(M,y+20,CW,6,'F');doc.setTextColor(13,148,136);doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.text('GPS: Lat '+String(s.gps.lat)+'  Lng '+String(s.gps.lng)+'  Accuracy: +-'+String(s.gps.accuracy)+'m',M+3,y+24);}
-    y+=(s.gps&&s.gps.lat?28:22);};
+    // GPS row — always shown
+    const gpsOk2=!!(s.gps&&s.gps.lat);
+    const gpsT2=gpsOk2?('Lat: '+String(s.gps.lat)+'   Lng: '+String(s.gps.lng)+'   Acc: +-'+String(s.gps.accuracy)+'m'):'GPS: Not Available';
+    const gpsC2=gpsOk2?[13,148,136]:[180,90,90];
+    doc.setFillColor(gpsOk2?232:250,gpsOk2?248:235,gpsOk2?246:235);doc.rect(M,y+19,CW,7,'F');
+    doc.setDrawColor(...gpsC2);doc.line(M,y+19,M+CW,y+19);
+    doc.setTextColor(...gpsC2);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+    doc.text('GPS: '+gpsT2,M+3,y+24);
+    y+=28;};
   if(cl){doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name,M,y);y+=7;
     doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Checklist Item',M+2,y+5);doc.text('Result',W-M-20,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
     cl.items.forEach((item,i)=>{const v=ptw.checklist[item.id]||'yes';const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
