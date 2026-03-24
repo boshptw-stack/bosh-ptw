@@ -348,9 +348,7 @@ const APP_CONFIG = {
 // ================================================================
 // PROJECT DATABASE
 // ================================================================
-const DEFAULT_PROJECTS = [
-  {id:'proj1', name:'CCS-CHECC-BOSH JV - Keppel CCS Tengah', code:'KCT', client:'Keppel', location:'Tengah', status:'active', projectAdminId:'', createdAt:new Date().toISOString()},
-];
+const DEFAULT_PROJECTS = [];
 const PDB = {
   getAll(){try{const s=localStorage.getItem('ptw_projects');return s?JSON.parse(s):DEFAULT_PROJECTS;}catch{return DEFAULT_PROJECTS;}},
   save(p){localStorage.setItem('ptw_projects',JSON.stringify(p));},
@@ -877,8 +875,8 @@ function renderNewPTW(){
       <div class="form-group"><label>Valid To *</label><input id="f-to" type="datetime-local" value="${dt}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Contact Number</label><input id="f-contact" type="tel" placeholder="Mobile number"></div>
-      <div class="form-group"><label>Description of Work</label><input id="f-desc" type="text" placeholder="Brief description"></div>
+      <div class="form-group"><label>Contact Number *</label><input id="f-contact" type="tel" placeholder="Mobile number *"></div>
+      <div class="form-group"><label>Description of Work *</label><input id="f-desc" type="text" placeholder="Brief description of work *"></div>
     </div>
     <div class="form-group">
       <label>Assign To — Trade In Charge (TIC) *</label>
@@ -889,15 +887,15 @@ function renderNewPTW(){
     </div>
   </div>
   <div class="form-card">
-    <h3>👷 2. Workers Involved</h3>
+    <h3>👷 2. Workers Involved *</h3>
     <div id="workers-list">
       <div class="worker-row"><input type="text" placeholder="Worker Name" class="w-name"><input type="text" placeholder="Trade / Designation" class="w-trade"><button class="remove-btn" onclick="removeW(this)">×</button></div>
     </div>
     <button class="add-row-btn" onclick="addW()">+ Add Worker</button>
   </div>
   <div class="form-card">
-    <h3>🔧 3. Equipment / Tools</h3>
-    <textarea id="f-equip" rows="3" placeholder="List all equipment and tools to be used..."></textarea>
+    <h3>🔧 3. Equipment / Tools *</h3>
+    <textarea id="f-equip" rows="3" placeholder="List all equipment and tools to be used... *"></textarea>
   </div>
   <div class="form-card" id="cl-card" style="display:none">
     <h3 id="cl-title">✅ 4. Safety Checklist</h3>
@@ -989,6 +987,17 @@ function _submitPTWWithId(ptwId){
   if(!project&&!projectId){toast('Please select or enter a Project.','error');return;}
   if(!location){toast('Please enter work location.','error');return;}
   if(!from||!to){toast('Please set validity period.','error');return;}
+  // Mandatory fields validation
+  const contact=document.getElementById('f-contact').value.trim();
+  if(!contact){toast('⚠ Contact Number is required.','error');document.getElementById('f-contact').focus();return;}
+  const desc=document.getElementById('f-desc').value.trim();
+  if(!desc){toast('⚠ Description of Work is required.','error');document.getElementById('f-desc').focus();return;}
+  // Workers — at least 1 worker with a name
+  const workerNames=[...document.querySelectorAll('.w-name')].map(i=>i.value.trim()).filter(Boolean);
+  if(workerNames.length===0){toast('⚠ At least 1 Worker is required.','error');document.querySelector('.w-name').focus();return;}
+  // Equipment
+  const equip=document.getElementById('f-equip').value.trim();
+  if(!equip){toast('⚠ Equipment / Tools list is required.','error');document.getElementById('f-equip').focus();return;}
   const ticEl=document.getElementById('f-tic');const ticEmail=ticEl?ticEl.value:'';const ticName=ticEl?ticEl.options[ticEl.selectedIndex]?.dataset?.name||'':'';
   if(!ticEmail){toast('Please select a Trade In Charge (TIC).','error');return;}
   if(!newSig){toast('Please sign the declaration first.','error');return;}
@@ -1474,6 +1483,7 @@ function renderAdmin(){
     </div>
   </div>
   ${CU.role==='admin'?renderPermitTypesList():''}
+  ${renderProjectManagement()}
   <div class="form-card">
     <h3>⚠ Reset / Data Tools</h3>
     <div style="display:flex;gap:9px;flex-wrap:wrap">
@@ -1481,6 +1491,97 @@ function renderAdmin(){
       <button class="btn btn-outline btn-sm" onclick="if(confirm('Reset users to default?')){localStorage.removeItem('ptw_users_gs');toast('Users reset.','warning');renderAdmin()}">↺ Reset Users</button>
     </div>
   </div>`;
+}
+
+function renderProjectManagement(){
+  const projects=PDB.getAll();
+  const statusColors={active:'var(--success)',inactive:'var(--text-dim)',completed:'var(--info)'};
+  let html='<div class="form-card"><h3>🏗 Project Management</h3>';
+  html+='<div class="alert alert-info" style="margin-bottom:14px">Add and manage projects. These appear in the New PTW dropdown for Supervisors.</div>';
+
+  // Existing projects table
+  if(projects.length>0){
+    html+='<table class="checklist-table" style="margin-bottom:16px"><thead><tr><th>Code</th><th>Project Name</th><th>Client</th><th>Location</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+    projects.forEach(p=>{
+      html+=`<tr>
+        <td><span class="ptw-type-badge" style="width:50px;height:24px;font-size:10px;background:rgba(30,58,110,.1);border:1px solid rgba(30,58,110,.3);color:var(--primary)">${p.code||'—'}</span></td>
+        <td style="font-weight:600;font-size:13px">${p.name||'—'}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${p.client||'—'}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${p.location||'—'}</td>
+        <td><span class="status-badge ${p.status==='active'?'status-active':p.status==='completed'?'status-closed':'status-rejected'}">${p.status||'active'}</span></td>
+        <td style="display:flex;gap:5px">
+          <button class="btn btn-outline btn-sm" onclick="toggleProjectStatus('${p.id}','${p.status||'active'}')">
+            ${p.status==='active'?'Deactivate':'Activate'}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProject('${p.id}','${p.name}')">Delete</button>
+        </td>
+      </tr>`;
+    });
+    html+='</tbody></table>';
+  } else {
+    html+='<div style="text-align:center;padding:20px;color:var(--text-dim);font-size:13px;margin-bottom:16px">No projects yet. Add your first project below.</div>';
+  }
+
+  // Add new project form
+  html+=`<div style="background:#F7FAFC;border:1px solid var(--border);border-radius:var(--radius);padding:18px">
+    <b style="font-size:13px;display:block;margin-bottom:14px">➕ Add New Project</b>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Project Code * (short, e.g. KCT)</label>
+        <input id="np-code" type="text" placeholder="e.g. KCT, MND, BRC" maxlength="10" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label>Project Name *</label>
+        <input id="np-name" type="text" placeholder="e.g. Keppel CCS Tengah">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Client / Main Contractor</label>
+        <input id="np-client" type="text" placeholder="e.g. Keppel, JTC, HDB">
+      </div>
+      <div class="form-group">
+        <label>Site Location</label>
+        <input id="np-location" type="text" placeholder="e.g. Tengah, Jurong, Woodlands">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addProject()">➕ Add Project</button>
+  </div>`;
+
+  html+='</div>';
+  return html;
+}
+
+function addProject(){
+  const code=document.getElementById('np-code').value.trim().toUpperCase();
+  const name=document.getElementById('np-name').value.trim();
+  const client=document.getElementById('np-client').value.trim();
+  const location=document.getElementById('np-location').value.trim();
+  if(!code){toast('Please enter a project code.','error');return;}
+  if(!name){toast('Please enter a project name.','error');return;}
+  // Check duplicate code
+  const existing=PDB.getAll().find(p=>p.code===code);
+  if(existing){toast('Project code "'+code+'" already exists.','error');return;}
+  PDB.add({name,code,client,location,status:'active'});
+  toast('✅ Project "'+name+'" added!','success');
+  renderAdmin();
+}
+
+function toggleProjectStatus(id,currentStatus){
+  const newStatus=currentStatus==='active'?'inactive':'active';
+  PDB.update(id,{status:newStatus});
+  toast(newStatus==='active'?'✅ Project activated!':'Project deactivated.', newStatus==='active'?'success':'warning');
+  renderAdmin();
+}
+
+function deleteProject(id,name){
+  // Check if any active PTWs use this project
+  const ptws=DB.getPTWs().filter(p=>p.projectId===id&&p.status!=='closed'&&p.status!=='rejected');
+  if(ptws.length>0){toast('Cannot delete — '+ptws.length+' active PTW(s) using this project.','error');return;}
+  if(!confirm('Delete project "'+name+'"?'))return;
+  PDB.remove(id);
+  toast('🗑 Project deleted.','warning');
+  renderAdmin();
 }
 
 function renderPermitTypesList(){
