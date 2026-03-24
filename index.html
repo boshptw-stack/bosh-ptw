@@ -884,7 +884,7 @@ function renderNewPTW(){
       <label>Assign To — Trade In Charge (TIC) *</label>
       <select id="f-tic">
         <option value="">-- Select TIC --</option>
-        ${UDB.getByRole('tic').map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} (${u.email})</option>`).join('')}
+        ${UDB.getAll().filter(u=>u.role==='tic'&&u.active!==false).map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — ${u.role.toUpperCase()} (${u.email})</option>`).join('')}
       </select>
     </div>
   </div>
@@ -1072,6 +1072,21 @@ function stageBlock(ptw,key,num,title){
 
 function actionPanel(ptw){
   const r=CU.role,me=CU.email.toLowerCase();
+  // Auto capture GPS for all approvers
+  if(r==='tic'||r==='ehs'||r==='pm'){
+    if(!CU_GPS){
+      captureGPS(gps=>{
+        CU_GPS=gps;
+        const el=document.getElementById('gps-approve-auto');
+        if(el){
+          if(gps){el.style.background='rgba(13,148,136,.12)';el.style.borderColor='rgba(13,148,136,.3)';el.style.color='var(--teal)';el.innerHTML='<b>✅ GPS Ready:</b> <span style="font-family:monospace">'+gps.lat+', '+gps.lng+'</span> (±'+gps.accuracy+'m) <a href="https://maps.google.com/?q='+gps.lat+','+gps.lng+'" target="_blank" style="color:var(--teal);font-weight:bold">📍 Map</a>';}
+          else{el.style.background='rgba(220,38,38,.08)';el.style.borderColor='rgba(220,38,38,.2)';el.style.color='var(--danger)';el.innerHTML='❌ GPS unavailable — will save without GPS';}
+        }
+      });
+    } else {
+      setTimeout(()=>{const el=document.getElementById('gps-approve-auto');if(el&&CU_GPS){el.style.background='rgba(13,148,136,.12)';el.style.borderColor='rgba(13,148,136,.3)';el.style.color='var(--teal)';el.innerHTML='<b>✅ GPS Ready:</b> <span style="font-family:monospace">'+CU_GPS.lat+', '+CU_GPS.lng+'</span> (±'+CU_GPS.accuracy+'m)';}},200);
+    }
+  }
   if(r==='admin'&&ptw.status!=='closed'&&ptw.status!=='rejected'){
     return`<div class="form-card" style="border-color:var(--primary);margin-top:18px"><h3 style="color:var(--primary)">🔐 Admin — Override Close</h3>
     <div class="form-group"><label>Closing Remarks</label><textarea id="close-remarks" rows="2" placeholder="Admin override close..."></textarea></div>
@@ -1103,15 +1118,15 @@ function actionPanel(ptw){
 
 function approvePanel(stageKey,label){
   let nextSel='';
-  if(stageKey==='tic'){const list=UDB.getByRole('ehs');nextSel=`<div class="form-group"><label>Forward To — EHS Officer *</label><select id="next-person-select"><option value="">-- Select EHS --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} (${u.email})</option>`).join('')}</select></div>`;}
-  else if(stageKey==='ehs'){const list=UDB.getByRole('pm');nextSel=`<div class="form-group"><label>Forward To — Project Manager *</label><select id="next-person-select"><option value="">-- Select PM --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} (${u.email})</option>`).join('')}</select></div>`;}
+  if(stageKey==='tic'){const list=UDB.getAll().filter(u=>u.role==='ehs'&&u.active!==false);nextSel=`<div class="form-group"><label>Forward To — EHS Officer *</label><select id="next-person-select"><option value="">-- Select EHS --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — EHS (${u.email})</option>`).join('')}</select></div>`;}
+  else if(stageKey==='ehs'){const list=UDB.getAll().filter(u=>u.role==='pm'&&u.active!==false);nextSel=`<div class="form-group"><label>Forward To — Project Manager *</label><select id="next-person-select"><option value="">-- Select PM --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PM (${u.email})</option>`).join('')}</select></div>`;}
   return`<div class="form-card" style="border-color:var(--orange);margin-top:18px"><h3>⚡ Action Required — ${label}</h3>
   ${nextSel}
   <div class="form-group"><label>Remarks (Optional)</label><textarea id="approve-remarks" rows="2" placeholder="Add conditions or remarks..."></textarea></div>
   <div id="approve-sig-preview" style="display:none;margin-bottom:12px"><div class="sig-box"><div class="sig-img"><img id="approve-sig-img"></div><div class="sig-info"><div class="sig-name">${CU.name}</div><div class="sig-email">${CU.email} · ${CU.company}</div></div></div></div>
-  <div id="gps-status-approve" style="margin-bottom:8px"></div>
+  <div id="gps-status-approve" style="margin-bottom:8px"><div style="padding:7px 12px;background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.2);border-radius:6px;font-size:11px;color:var(--teal)" id="gps-approve-auto">📍 Capturing GPS automatically...</div></div>
   <div style="display:flex;gap:9px;flex-wrap:wrap">
-    ${stageKey==='ehs'?`<button class="btn btn-outline" onclick="refreshGPS('approve')">📍 GPS</button>`:''}
+    <button class="btn btn-outline" onclick="refreshGPS('approve')">🔄 Refresh GPS</button>
     <button class="btn btn-outline" onclick="openSig('approve')">✍ Sign</button>
     <button class="btn btn-success" onclick="doApprove('${stageKey}')">✅ ${stageKey==='pm'?'Approve PTW':stageKey==='tic'?'Verify':'Approve'}</button>
     <button class="btn btn-danger" onclick="openReject('${stageKey}')">⛔ Reject</button>
@@ -1184,7 +1199,7 @@ function doApprove(stageKey){
   const ptw=DB.getPTWs().find(p=>p.id===CP.id);
   const remarks=document.getElementById('approve-remarks')?.value||'';
   const nextStatus={tic:'pending_ehs',ehs:'pending_pm',pm:'active'};
-  const stageGPS=(stageKey==='ehs'&&CU_GPS?.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null;
+  const stageGPS=(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null;
   ptw.stages[stageKey]={name:CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:approveSig,remarks,gps:stageGPS};
   if(sel&&sel.value){const nextName=sel.options[sel.selectedIndex]?.dataset?.name||'';if(stageKey==='tic')ptw.assignedEHS={email:sel.value,name:nextName};if(stageKey==='ehs')ptw.assignedPM={email:sel.value,name:nextName};}
   ptw.status=nextStatus[stageKey]||ptw.status;ptw.updatedAt=new Date().toISOString();
@@ -1220,9 +1235,14 @@ function doClose(){
 
 function refreshGPS(ctx){
   captureGPS(gps=>{
-    if(!gps)return;
     const el=document.getElementById('gps-status-'+ctx);
-    if(el)el.innerHTML=`<div style="background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.3);border-radius:6px;padding:7px 12px;font-size:12px;color:var(--teal)">📍 <b>GPS:</b> ${gps.lat}, ${gps.lng} (±${gps.accuracy}m) <a href="https://maps.google.com/?q=${gps.lat},${gps.lng}" target="_blank" style="color:var(--teal)">[Map]</a></div>`;
+    const autoEl=document.getElementById('gps-'+ctx+'-auto');
+    if(!gps){
+      const msg='<div style="padding:7px 12px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:6px;font-size:11px;color:var(--danger)">❌ GPS unavailable — will save without GPS</div>';
+      if(el)el.innerHTML=msg;if(autoEl)autoEl.outerHTML=msg;return;
+    }
+    const msg=`<div style="padding:7px 12px;background:rgba(13,148,136,.12);border:1px solid rgba(13,148,136,.3);border-radius:6px;font-size:11px;color:var(--teal)"><b>✅ GPS Ready:</b> <span style="font-family:monospace">${gps.lat}, ${gps.lng}</span> (±${gps.accuracy}m) <a href="https://maps.google.com/?q=${gps.lat},${gps.lng}" target="_blank" style="color:var(--teal);font-weight:bold">📍 Map</a></div>`;
+    if(el)el.innerHTML=msg;if(autoEl)autoEl.outerHTML=msg;
   });
 }
 function refreshGPSNew(){
