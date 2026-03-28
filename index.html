@@ -1086,7 +1086,7 @@ function _submitPTWWithId(ptwId){
     contactNumber:document.getElementById('f-contact').value,workDescription:document.getElementById('f-desc').value,
     workers,equipment:document.getElementById('f-equip').value,checklist,
     assignedPIC:{email:ticEmail,name:ticName},
-    stages:{supervisor:{name:CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:newSig,remarks:'',gps:(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null}},
+    stages:{supervisor:{name:CU.name.replace(/^(PIC|EHS|PM|SUP|ADMIN)/i,'').trim()||CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:newSig,remarks:'',gps:(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null}},
     createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
   };
   DB.savePTW(ptw);newSig=null;
@@ -1283,7 +1283,9 @@ function doApprove(stageKey){
   const remarks=document.getElementById('approve-remarks')?.value||'';
   const nextStatus={pic:'pending_ehs',ehs:'pending_pm',pm:'active'};
   const stageGPS=(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null;
-  ptw.stages[stageKey]={name:CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:approveSig,remarks,gps:stageGPS};
+  // Ensure clean name (no role prefix)
+  const cleanName=CU.name.replace(/^(PIC|EHS|PM|SUP|ADMIN)/i,'').trim()||CU.name;
+  ptw.stages[stageKey]={name:cleanName,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:approveSig,remarks,gps:stageGPS};
   if(sel&&sel.value){const nextName=sel.options[sel.selectedIndex]?.dataset?.name||'';if(stageKey==='pic')ptw.assignedEHS={email:sel.value,name:nextName};if(stageKey==='ehs')ptw.assignedPM={email:sel.value,name:nextName};}
   ptw.status=nextStatus[stageKey]||ptw.status;ptw.updatedAt=new Date().toISOString();
   DB.savePTW(ptw);approveSig=null;CP=ptw;
@@ -1311,7 +1313,7 @@ function doRevoke(){
 function doClose(){
   if(!closeSig2){toast('Please sign before closing.','error');return;}
   const ptw=DB.getPTWs().find(p=>p.id===CP.id);const remarks=document.getElementById('close-remarks')?.value||'';
-  ptw.stages['close']={name:CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:closeSig2,remarks};
+  ptw.stages['close']={name:CU.name.replace(/^(PIC|EHS|PM|SUP|ADMIN)/i,'').trim()||CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:closeSig2,remarks};
   ptw.status='closed';ptw.updatedAt=new Date().toISOString();
   DB.savePTW(ptw);closeSig2=null;CP=ptw;
   toast('PTW closed successfully. Saving closed PDF to Drive...','success');
@@ -1347,6 +1349,22 @@ function autoSaveClosedPDF(ptw){
     const rows=[['Ref No.',ptw.id],['Company',ptw.company||''],['Project',ptw.project||''],['Status','CLOSED'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||''],['Contact',ptw.contactNumber||''],['Work Desc.',ptw.workDescription||'']];
     rows.forEach(([lb,vl])=>{if(!vl)return;doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');const vt=doc.splitTextToSize(String(vl),CW-52);doc.text(vt[0]||'',M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
     y+=6;
+    // Workers in closed PDF
+    if(ptw.workers&&ptw.workers.length>0){
+      cp2(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
+      doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
+      doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
+      ptw.workers.forEach((w,wi)=>{
+        cp2(7);doc.setFillColor(wi%2===0?250:255,wi%2===0?252:255,wi%2===0?255:255);
+        doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
+        doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text(w.name||'',M+3,y+5);
+        doc.setFont('helvetica','normal');doc.setTextColor(...gray);
+        if(w.trade)doc.text(w.trade,M+80,y+5);
+        y+=7;
+      });
+      y+=4;
+    }
     // Equipment
     if(ptw.equipment&&ptw.equipment.trim()){
       cp2(18);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
@@ -1451,6 +1469,24 @@ function autoSavePDFtoDrive(ptw){
     // Workers
     if(ptw.workers&&ptw.workers.length>0){cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
       ptw.workers.forEach(w=>{cp(7);doc.setFillColor(250,252,255);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(w.name||'',M+3,y+5);doc.setFont('helvetica','normal');doc.setTextColor(...gray);doc.text(w.trade||'',M+70,y+5);y+=7;});y+=5;}
+    // WORKERS section
+    if(ptwForPDF.workers&&ptwForPDF.workers.length>0){
+      cp(12);
+      doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
+      doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
+      doc.text('Workers Involved ('+ptwForPDF.workers.length+')',M+3,y+6.5);y+=13;
+      ptwForPDF.workers.forEach((w,wi)=>{
+        cp(7);
+        doc.setFillColor(wi%2===0?250:255,wi%2===0?252:255,wi%2===0?255:255);
+        doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
+        doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text(w.name||'',M+3,y+5);
+        doc.setFont('helvetica','normal');doc.setTextColor(...gray);
+        if(w.trade)doc.text(w.trade,M+80,y+5);
+        y+=7;
+      });
+      y+=4;
+    }
     // EQUIPMENT section
     if(ptw.equipment&&ptw.equipment.trim()){
       cp(18);
@@ -1582,6 +1618,24 @@ function genPDF(){
     doc.setTextColor(...gpsC2);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
     doc.text('GPS: '+gpsT2,M+3,y+24);
     y+=28;};
+  // Workers in genPDF
+  if(ptw.workers&&ptw.workers.length>0){
+    cp(12);
+    doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
+    doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
+    ptw.workers.forEach((w,wi)=>{
+      cp(7);
+      doc.setFillColor(wi%2===0?250:255,wi%2===0?252:255,wi%2===0?255:255);
+      doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
+      doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');
+      doc.text(w.name||'',M+3,y+5);
+      doc.setFont('helvetica','normal');doc.setTextColor(...gray);
+      if(w.trade)doc.text(w.trade,M+80,y+5);
+      y+=7;
+    });
+    y+=4;
+  }
   // Equipment in genPDF
   if(ptw.equipment&&ptw.equipment.trim()){
     cp(18);
