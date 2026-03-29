@@ -1354,12 +1354,13 @@ function autoSaveClosedPDF(ptw){
     const rows=[['Ref No.',ptw.id],['Company',ptw.company||''],['Project',ptw.project||''],['Status','CLOSED'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||''],['Contact',ptw.contactNumber||''],['Work Desc.',ptw.workDescription||'']];
     rows.forEach(([lb,vl])=>{if(!vl)return;doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');const vt=doc.splitTextToSize(String(vl),CW-52);doc.text(vt[0]||'',M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
     y+=6;
-    // Workers in closed PDF
-    if(ptw.workers&&ptw.workers.length>0){
-      cp2(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
-      doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
-      doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
-      ptw.workers.forEach((w,wi)=>{
+    // Workers in closed PDF — always show
+    const wClosed=Array.isArray(ptw.workers)?ptw.workers:(typeof ptw.workers==='string'?JSON.parse(ptw.workers||'[]'):[]);
+    cp2(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
+    doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.text('Workers Involved ('+(wClosed.length||0)+')',M+3,y+6.5);y+=13;
+    if(wClosed.length>0){
+      wClosed.forEach((w,wi)=>{
         cp2(7);doc.setFillColor(wi%2===0?250:255,wi%2===0?252:255,wi%2===0?255:255);
         doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
         doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');
@@ -1368,13 +1369,19 @@ function autoSaveClosedPDF(ptw){
         if(w.trade)doc.text(w.trade,M+80,y+5);
         y+=7;
       });
-      y+=4;
+    } else {
+      doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
+      doc.setTextColor(...gray);doc.setFontSize(9);doc.setFont('helvetica','italic');
+      doc.text('No workers listed',M+3,y+5);y+=7;
     }
-    // Equipment
-    if(ptw.equipment&&ptw.equipment.trim()){
-      cp2(18);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
-      const eqL=doc.splitTextToSize(ptw.equipment,CW-6);const eqH=Math.max(12,eqL.length*5+6);
-      cp2(eqH);doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,eqH,'FD');doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(eqL,M+3,y+6);y+=eqH+4;
+    y+=4;
+    // Equipment — always show
+    {cp2(18);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
+    const eqClosedTxt=(ptw.equipment||'').trim();
+      const eqL=doc.splitTextToSize(eqClosedTxt||'No equipment listed',CW-6);const eqH=Math.max(10,eqL.length*5+6);
+      cp2(eqH);doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,eqH,'FD');
+      doc.setTextColor(eqClosedTxt?10:150,eqClosedTxt?22:150,eqClosedTxt?40:150);
+      doc.setFontSize(9);doc.setFont('helvetica',eqClosedTxt?'normal':'italic');doc.text(eqL,M+3,y+6);y+=eqH+4;
     }
     // Workers
     if(ptw.workers&&ptw.workers.length>0){cp2(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;ptw.workers.forEach(w=>{cp2(7);doc.setFillColor(250,252,255);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(w.name||'',M+3,y+5);doc.setFont('helvetica','normal');doc.setTextColor(...gray);doc.text(w.trade||'',M+70,y+5);y+=7;});y+=5;}
@@ -1474,13 +1481,14 @@ function autoSavePDFtoDrive(ptw){
     // Workers
     if(ptw.workers&&ptw.workers.length>0){cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
       ptw.workers.forEach(w=>{cp(7);doc.setFillColor(250,252,255);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(w.name||'',M+3,y+5);doc.setFont('helvetica','normal');doc.setTextColor(...gray);doc.text(w.trade||'',M+70,y+5);y+=7;});y+=5;}
-    // WORKERS section
-    if(ptwForPDF.workers&&ptwForPDF.workers.length>0){
-      cp(12);
-      doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
-      doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
-      doc.text('Workers Involved ('+ptwForPDF.workers.length+')',M+3,y+6.5);y+=13;
-      ptwForPDF.workers.forEach((w,wi)=>{
+    // WORKERS section — always show
+    const wList=Array.isArray(ptwForPDF.workers)?ptwForPDF.workers:(typeof ptwForPDF.workers==='string'?JSON.parse(ptwForPDF.workers||'[]'):[]);
+    cp(12);
+    doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
+    doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.text('Workers Involved ('+(wList.length||0)+')',M+3,y+6.5);y+=13;
+    if(wList.length>0){
+      wList.forEach((w,wi)=>{
         cp(7);
         doc.setFillColor(wi%2===0?250:255,wi%2===0?252:255,wi%2===0?255:255);
         doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
@@ -1490,21 +1498,25 @@ function autoSavePDFtoDrive(ptw){
         if(w.trade)doc.text(w.trade,M+80,y+5);
         y+=7;
       });
-      y+=4;
+    } else {
+      doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
+      doc.setTextColor(...gray);doc.setFontSize(9);doc.setFont('helvetica','italic');
+      doc.text('No workers listed',M+3,y+5);y+=7;
     }
-    // EQUIPMENT section
-    if(ptw.equipment&&ptw.equipment.trim()){
-      cp(18);
-      doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
-      doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
-      doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
-      const equipLines=doc.splitTextToSize(ptw.equipment,CW-6);
-      const equipH=Math.max(12,equipLines.length*5+6);
-      cp(equipH);
-      doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,equipH,'FD');
-      doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','normal');
-      doc.text(equipLines,M+3,y+6);y+=equipH+4;
-    }
+    y+=4;
+    // EQUIPMENT section — always show
+    cp(18);
+    doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
+    doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
+    const equipTxt=(ptw.equipment||'').trim();
+    const equipLines=doc.splitTextToSize(equipTxt||'No equipment listed',CW-6);
+    const equipH=Math.max(10,equipLines.length*5+6);
+    cp(equipH);
+    doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,equipH,'FD');
+    doc.setTextColor(equipTxt?10:150,equipTxt?22:150,equipTxt?40:150);doc.setFontSize(9);
+    doc.setFont('helvetica',equipTxt?'normal':'italic');
+    doc.text(equipLines,M+3,y+6);y+=equipH+4;
     // Checklist
     if(cl&&ptwForPDF.checklist&&Object.keys(ptwForPDF.checklist).length>0){
       cp(12);doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;
@@ -1623,13 +1635,14 @@ function genPDF(){
     doc.setTextColor(...gpsC2);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
     doc.text('GPS: '+gpsT2,M+3,y+24);
     y+=28;};
-  // Workers in genPDF
-  if(ptw.workers&&ptw.workers.length>0){
-    cp(12);
-    doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
-    doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
-    doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
-    ptw.workers.forEach((w,wi)=>{
+  // Workers in genPDF — always show
+  const wArr=Array.isArray(ptw.workers)?ptw.workers:(typeof ptw.workers==='string'?JSON.parse(ptw.workers||'[]'):[]);
+  cp(12);
+  doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
+  doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
+  doc.text('Workers Involved ('+(wArr.length||0)+')',M+3,y+6.5);y+=13;
+  if(wArr.length>0){
+    wArr.forEach((w,wi)=>{
       cp(7);
       doc.setFillColor(wi%2===0?250:255,wi%2===0?252:255,wi%2===0?255:255);
       doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
@@ -1639,19 +1652,25 @@ function genPDF(){
       if(w.trade)doc.text(w.trade,M+80,y+5);
       y+=7;
     });
-    y+=4;
+  } else {
+    doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
+    doc.setTextColor(...gray);doc.setFontSize(9);doc.setFont('helvetica','italic');
+    doc.text('No workers listed',M+3,y+5);y+=7;
   }
-  // Equipment in genPDF
-  if(ptw.equipment&&ptw.equipment.trim()){
+  y+=4;
+  // Equipment in genPDF — always show
+  {
     cp(18);
     doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
     doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
     doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
-    const eqLines=doc.splitTextToSize(ptw.equipment,CW-6);
-    const eqH=Math.max(12,eqLines.length*5+6);
+    const eqTxt=(ptw.equipment||'').trim();
+    const eqLines=doc.splitTextToSize(eqTxt||'No equipment listed',CW-6);
+    const eqH=Math.max(10,eqLines.length*5+6);
     cp(eqH);
     doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,eqH,'FD');
-    doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.setTextColor(eqTxt?10:150,eqTxt?22:150,eqTxt?40:150);
+    doc.setFontSize(9);doc.setFont('helvetica',eqTxt?'normal':'italic');
     doc.text(eqLines,M+3,y+6);y+=eqH+4;
   }
   if(cl){doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name,M,y);y+=7;
