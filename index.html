@@ -1816,49 +1816,6 @@ function genPDF(){
     doc.setTextColor(...gpsC2);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
     doc.text('GPS: '+gpsT2,M+3,y+24);
     y+=28;};
-  // Workers in genPDF — always show
-  const wArr=Array.isArray(ptw.workers)?ptw.workers:(typeof ptw.workers==='string'?JSON.parse(ptw.workers||'[]'):[]);
-  cp(12);
-  doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
-  doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
-  doc.text('Workers Involved ('+(wArr.length||0)+')',M+3,y+6.5);y+=13;
-  if(wArr.length>0){
-    wArr.forEach((w,wi)=>{
-      cp(7);
-      doc.setFillColor(wi%2===0?250:255,wi%2===0?252:255,wi%2===0?255:255);
-      doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
-      doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');
-      doc.text(w.name||'',M+3,y+5);
-      doc.setFont('helvetica','normal');doc.setTextColor(...gray);
-      if(w.trade)doc.text(w.trade,M+80,y+5);
-      y+=7;
-    });
-  } else {
-    doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7,'FD');
-    doc.setTextColor(...gray);doc.setFontSize(9);doc.setFont('helvetica','italic');
-    doc.text('No workers listed',M+3,y+5);y+=7;
-  }
-  y+=4;
-  // Equipment in genPDF — always show
-  {
-    cp(18);
-    doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
-    doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
-    doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
-    const eqTxt=(ptw.equipment||'').trim();
-    const eqLines=doc.splitTextToSize(eqTxt||'No equipment listed',CW-6);
-    const eqH=Math.max(10,eqLines.length*5+6);
-    cp(eqH);
-    doc.setFillColor(250,252,255);doc.setDrawColor(...lgray);doc.rect(M,y,CW,eqH,'FD');
-    doc.setTextColor(eqTxt?10:150,eqTxt?22:150,eqTxt?40:150);
-    doc.setFontSize(9);doc.setFont('helvetica',eqTxt?'normal':'italic');
-    doc.text(eqLines,M+3,y+6);y+=eqH+4;
-  }
-  if(cl){doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name,M,y);y+=7;
-    doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Checklist Item',M+2,y+5);doc.text('Result',W-M-20,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
-    cl.items.forEach((item,i)=>{const v=ptw.checklist[item.id]||'yes';const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
-      doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);doc.setTextColor(...navy);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(tl,M+2,y+5);
-      const vc=v==='yes'?[34,150,80]:v==='no'?[200,50,50]:[90,110,140];doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,W-M-22,y+5);y+=rh;});y+=5;sigRow(ptw.stages&&ptw.stages.supervisor);}
   // DECLARATION
   cp(22);
   doc.setFillColor(245,247,250);doc.setDrawColor(30,58,110);doc.rect(M,y,CW,20,'FD');
