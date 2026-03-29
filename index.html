@@ -1383,8 +1383,6 @@ function autoSaveClosedPDF(ptw){
       doc.setTextColor(eqClosedTxt?10:150,eqClosedTxt?22:150,eqClosedTxt?40:150);
       doc.setFontSize(9);doc.setFont('helvetica',eqClosedTxt?'normal':'italic');doc.text(eqL,M+3,y+6);y+=eqH+4;
     }
-    // Workers
-    if(ptw.workers&&ptw.workers.length>0){cp2(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;ptw.workers.forEach(w=>{cp2(7);doc.setFillColor(250,252,255);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(w.name||'',M+3,y+5);doc.setFont('helvetica','normal');doc.setTextColor(...gray);doc.text(w.trade||'',M+70,y+5);y+=7;});y+=5;}
     // Declaration
     cp2(22);doc.setFillColor(245,247,250);doc.setDrawColor(30,58,110);doc.rect(M,y,CW,20,'FD');doc.setFillColor(30,58,110);doc.rect(M,y,3,20,'F');doc.setTextColor(30,58,110);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('SUPERVISOR DECLARATION',M+4,y+5);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,50,70);const dLines=doc.splitTextToSize('As Supervisor, I possess the required competence to oversee this activity. The Method Statement, Risk Assessment, and Safety Checklists are understood and complied with. Work areas and activities reported in this application are safe to proceed. By utilizing this electronic permit to work system, I acknowledge that my responsibilities and duties remain unaltered. This encompasses all obligations, whether contractual, statutory, or otherwise. Both myself and my company accept full accountability for any liabilities, injuries, or claims arising from or related to the use of this system.',CW-8);doc.text(dLines,M+4,y+10);y+=22;
     // All stages
@@ -1478,9 +1476,6 @@ function autoSavePDFtoDrive(ptw){
     const rows=[['Ref No.',ptw.id],['Company',ptw.company||'Bosh Engineering Pte. Ltd.'],['Project',ptw.project||''],['Status','Active / Approved'],['Validity',fmt(ptw.validityStart)+' to '+fmt(ptw.validityEnd)],['Location',ptw.location||''],['Contact',ptw.contactNumber||''],['Work Desc.',ptw.workDescription||'']];
     rows.forEach(([lb,vl])=>{if(!vl)return;doc.setFillColor(...lgray);doc.rect(M,y,48,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(lb,M+2,y+5);doc.setFillColor(250,252,255);doc.rect(M+48,y,CW-48,7,'F');doc.setFont('helvetica','normal');const vt=doc.splitTextToSize(String(vl),CW-52);doc.text(vt[0]||'',M+50,y+5);doc.setDrawColor(195,210,228);doc.rect(M,y,CW,7);y+=7;});
     y+=7;
-    // Workers
-    if(ptw.workers&&ptw.workers.length>0){cp(12);doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Workers Involved ('+ptw.workers.length+')',M+3,y+6.5);y+=13;
-      ptw.workers.forEach(w=>{cp(7);doc.setFillColor(250,252,255);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(w.name||'',M+3,y+5);doc.setFont('helvetica','normal');doc.setTextColor(...gray);doc.text(w.trade||'',M+70,y+5);y+=7;});y+=5;}
     // WORKERS section — always show
     const wList=Array.isArray(ptwForPDF.workers)?ptwForPDF.workers:(typeof ptwForPDF.workers==='string'?JSON.parse(ptwForPDF.workers||'[]'):[]);
     cp(12);
@@ -1524,7 +1519,7 @@ function autoSavePDFtoDrive(ptw){
       doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Safety Check Item',M+2,y+5);doc.text('Result',W-M-22,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
       cl.items.forEach((item,i)=>{
         const v=ptwForPDF.checklist[item.id]||'yes';
-        const vl={yes:'✓ Yes',no:'✗ No',na:'N/A',others:'Others'}[v]||v;
+        const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
         const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
         doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);
         doc.setTextColor(...navy);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(tl,M+2,y+5);
