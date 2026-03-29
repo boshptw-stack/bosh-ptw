@@ -358,16 +358,62 @@ const APP_CONFIG = {
 // ================================================================
 const DEFAULT_PROJECTS = [];
 const PDB = {
-  getAll(){try{const s=localStorage.getItem('ptw_projects');return s?JSON.parse(s):DEFAULT_PROJECTS;}catch{return DEFAULT_PROJECTS;}},
-  save(p){localStorage.setItem('ptw_projects',JSON.stringify(p));},
-  add(p){const all=this.getAll();p.id='proj'+Date.now();p.createdAt=new Date().toISOString();all.push(p);this.save(all);return p;},
-  update(id,data){const all=this.getAll();const i=all.findIndex(p=>p.id===id);if(i>=0){all[i]={...all[i],...data};this.save(all);}},
+  _cache:null, _cacheTime:0, CACHE_MS:120000,
+  getAll(){
+    try{
+      if(this._cache&&(Date.now()-this._cacheTime)<this.CACHE_MS)return this._cache;
+      const s=localStorage.getItem('ptw_projects');
+      if(s){const p=JSON.parse(s);if(p&&p.length>0){this._cache=p;this._cacheTime=Date.now();return p;}}
+    }catch(e){}
+    return DEFAULT_PROJECTS;
+  },
+  save(p){
+    localStorage.setItem('ptw_projects',JSON.stringify(p));
+    this._cache=p;this._cacheTime=Date.now();
+    this._syncToSheets(p);
+  },
+  _syncToSheets(projects){
+    try{
+      ['__proj_if','__proj_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
+      const iframe=document.createElement('iframe');iframe.id='__proj_if';iframe.name='__proj_if';iframe.style.display='none';document.body.appendChild(iframe);
+      const form=document.createElement('form');form.id='__proj_fm';form.method='POST';form.action=APP_CONFIG.sheetsURL;form.target='__proj_if';form.style.display='none';
+      const inp=document.createElement('input');inp.type='hidden';inp.name='data';
+      inp.value=JSON.stringify({action:'saveProjects',token:'BOSH2026SECURE#PTW',projects:projects});
+      form.appendChild(inp);document.body.appendChild(form);form.submit();
+    }catch(e){console.warn('Project sync error:',e);}
+  },
+  loadFromSheets(){
+    try{
+      const script=document.createElement('script');
+      window.__projLoaded=function(data){
+        if(data&&data.success&&Array.isArray(data.projects)&&data.projects.length>0){
+          localStorage.setItem('ptw_projects',JSON.stringify(data.projects));
+          PDB._cache=data.projects;PDB._cacheTime=Date.now();
+          console.log('Projects loaded from Sheets:',data.projects.length);
+        }
+        try{document.head.removeChild(script);}catch(e){}
+        delete window.__projLoaded;
+      };
+      script.onerror=()=>{try{document.head.removeChild(script);}catch(e){}};
+      script.src=APP_CONFIG.sheetsURL+'?action=getProjects&t='+Date.now()+'&callback=__projLoaded';
+      document.head.appendChild(script);
+    }catch(e){console.warn('Project load error:',e);}
+  },
+  add(p){
+    const all=this.getAll();
+    p.id='proj'+Date.now();p.createdAt=new Date().toISOString();
+    all.push(p);this.save(all);
+    toast('✅ Project saved to Google Sheets!','success');
+    return p;
+  },
+  update(id,data){
+    const all=this.getAll();const i=all.findIndex(p=>p.id===id);
+    if(i>=0){all[i]={...all[i],...data};this.save(all);}
+  },
   remove(id){this.save(this.getAll().filter(p=>p.id!==id));},
   getById(id){return this.getAll().find(p=>p.id===id);},
   getForUser(uid,role,email){
     if(role==='admin'||role==='project_admin') return this.getAll().filter(p=>p.status==='active');
-    // ALL roles — PIC, EHS, PM, Supervisor filtered by assigned projects
-    // If no projects assigned → see ALL projects (backward compatible)
     const u=UDB.getAll().find(u=>u.email===email);
     if(!u||!u.projects||u.projects.length===0) return this.getAll().filter(p=>p.status==='active');
     return this.getAll().filter(p=>p.status==='active'&&u.projects.includes(p.id));
@@ -2138,6 +2184,7 @@ window.onload=()=>{
   filterState='mytasks';
   showPage('login');
   UDB.loadFromSheets();
+  PDB.loadFromSheets();
 };
 </script>
 </body>
