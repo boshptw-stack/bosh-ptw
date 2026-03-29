@@ -386,13 +386,23 @@ const PDB = {
     try{
       const script=document.createElement('script');
       window.__projLoaded=function(data){
+        try{document.head.removeChild(script);}catch(e){}
+        delete window.__projLoaded;
         if(data&&data.success&&Array.isArray(data.projects)&&data.projects.length>0){
+          // Sheets has data — use it
           localStorage.setItem('ptw_projects',JSON.stringify(data.projects));
           PDB._cache=data.projects;PDB._cacheTime=Date.now();
           console.log('Projects loaded from Sheets:',data.projects.length);
+        } else {
+          // Sheets is empty — push local projects to Sheets
+          const local=PDB.getAll();
+          const realProjects=local.filter(p=>p.id&&p.name&&p.id!=='proj1');
+          if(realProjects.length>0){
+            console.log('Sheets empty — pushing',realProjects.length,'local projects to Sheets');
+            PDB._syncToSheets(realProjects);
+            toast('📤 Syncing '+realProjects.length+' project(s) to Google Sheets...','info');
+          }
         }
-        try{document.head.removeChild(script);}catch(e){}
-        delete window.__projLoaded;
       };
       script.onerror=()=>{try{document.head.removeChild(script);}catch(e){}};
       script.src=APP_CONFIG.sheetsURL+'?action=getProjects&t='+Date.now()+'&callback=__projLoaded';
@@ -996,6 +1006,8 @@ function quickPDF(id){const prev=CP;CP=DB.getPTWs().find(p=>p.id===id);if(CP)gen
 // ================================================================
 function renderNewPTW(){
   renderHeader('app-header-new');
+  // Reload projects from Sheets every time New PTW is opened
+  PDB.loadFromSheets();
   const cls=DB.getChecklists();
   const opts=Object.values(cls).map(c=>`<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
   const now=new Date(),pad=n=>String(n).padStart(2,'0');
@@ -1885,6 +1897,10 @@ function renderProjectManagement(){
   const statusColors={active:'var(--success)',inactive:'var(--text-dim)',completed:'var(--info)'};
   let html='<div class="form-card"><h3>🏗 Project Management</h3>';
   html+='<div class="alert alert-info" style="margin-bottom:14px">Add and manage projects. These appear in the New PTW dropdown for Supervisors.</div>';
+  html+='<div style="margin-bottom:12px;display:flex;gap:9px;flex-wrap:wrap">';
+  html+='<button class="btn btn-primary btn-sm" onclick="forceSyncProjectsToSheets()">☁️ Sync All Projects to Google Sheets</button>';
+  html+='<button class="btn btn-outline btn-sm" onclick="reloadProjectsFromSheets()">🔄 Reload from Sheets</button>';
+  html+='</div>';
 
   // Existing projects table
   if(projects.length>0){
@@ -1937,6 +1953,19 @@ function renderProjectManagement(){
 
   html+='</div>';
   return html;
+}
+
+function reloadProjectsFromSheets(){
+  PDB.loadFromSheets();
+  setTimeout(()=>{renderAdmin();toast('Projects reloaded from Sheets','success');},2000);
+}
+
+function forceSyncProjectsToSheets(){
+  const projects=PDB.getAll();
+  if(projects.length===0){toast('No projects to sync','warning');return;}
+  PDB._syncToSheets(projects);
+  toast('☁️ Syncing '+projects.length+' project(s) to Google Sheets...','info');
+  setTimeout(()=>toast('✅ Projects synced! All devices will see them on next load.','success'),3000);
 }
 
 function addProject(){
