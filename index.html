@@ -595,7 +595,34 @@ const STATUS_LABELS = {
 // ================================================================
 const DB = {
   getChecklists(){try{const s=localStorage.getItem('ptw_checklists');return s?JSON.parse(s):DEFAULT_CHECKLISTS;}catch{return DEFAULT_CHECKLISTS;}},
-  saveChecklists(c){localStorage.setItem('ptw_checklists',JSON.stringify(c));},
+  saveChecklists(c){
+    localStorage.setItem('ptw_checklists',JSON.stringify(c));
+    // Sync to Sheets
+    try{
+      ['__cl_if','__cl_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
+      const iframe=document.createElement('iframe');iframe.id='__cl_if';iframe.name='__cl_if';iframe.style.display='none';document.body.appendChild(iframe);
+      const form=document.createElement('form');form.id='__cl_fm';form.method='POST';form.action=APP_CONFIG.sheetsURL;form.target='__cl_if';form.style.display='none';
+      const inp=document.createElement('input');inp.type='hidden';inp.name='data';
+      inp.value=JSON.stringify({action:'saveChecklists',token:'BOSH2026SECURE#PTW',checklists:c});
+      form.appendChild(inp);document.body.appendChild(form);form.submit();
+    }catch(e){console.warn('Checklist sync error:',e);}
+  },
+  loadChecklistsFromSheets(){
+    try{
+      const script=document.createElement('script');
+      window.__clLoaded=function(data){
+        if(data&&data.success&&data.checklists){
+          localStorage.setItem('ptw_checklists',JSON.stringify(data.checklists));
+          console.log('Checklists loaded from Sheets');
+        }
+        try{document.head.removeChild(script);}catch(e){}
+        delete window.__clLoaded;
+      };
+      script.onerror=()=>{try{document.head.removeChild(script);}catch(e){}};
+      script.src=APP_CONFIG.sheetsURL+'?action=getChecklists&t='+Date.now()+'&callback=__clLoaded';
+      document.head.appendChild(script);
+    }catch(e){console.warn('Checklist load error:',e);}
+  },
   saveToSheets(ptw){
     try{
       const p2=JSON.parse(JSON.stringify(ptw));
@@ -614,7 +641,24 @@ const DB = {
   },
   getPTWsLocal(){try{return JSON.parse(localStorage.getItem('ptw_records')||'[]');}catch{return[];}},
   getPTWs(){return this.getPTWsLocal();},
-  savePTWs(p){localStorage.setItem('ptw_records',JSON.stringify(p));},
+  savePTWs(p){
+    // Store without signatures to save localStorage space
+    const lite=p.map(rec=>{
+      const r={...rec};
+      if(r.stages)Object.keys(r.stages).forEach(k=>{
+        if(r.stages[k]&&r.stages[k].signature&&r.stages[k].signature.length>100)
+          r.stages[k]={...r.stages[k],signature:'[cached]'};
+      });
+      return r;
+    });
+    try{localStorage.setItem('ptw_records',JSON.stringify(lite));}catch(e){
+      // If storage full, keep only last 50 records
+      console.warn('localStorage full, trimming...');
+      try{localStorage.setItem('ptw_records',JSON.stringify(lite.slice(-50)));}catch(e2){
+        localStorage.removeItem('ptw_records');
+      }
+    }
+  },
   savePTW(ptw){
     const ptws=this.getPTWsLocal();const i=ptws.findIndex(p=>p.id===ptw.id);
     if(i>=0)ptws[i]=ptw;else ptws.unshift(ptw);
@@ -2183,8 +2227,12 @@ function downloadExcel(){
 window.onload=()=>{
   filterState='mytasks';
   showPage('login');
+  // Load ALL data from Google Sheets on startup
   UDB.loadFromSheets();
   PDB.loadFromSheets();
+  DB.loadChecklistsFromSheets();
+  // Note: PTW records sync happens on dashboard load via autoSync
+  // Checklists stored in Sheets via Admin panel
 };
 </script>
 </body>
