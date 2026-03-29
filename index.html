@@ -374,24 +374,19 @@ const PDB = {
   },
   _syncToSheets(projects){
     try{
-      // Use fetch API for reliable POST
-      const payload=JSON.stringify({action:'saveProjects',token:'BOSH2026SECURE#PTW',projects:projects});
-      fetch(APP_CONFIG.sheetsURL,{
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'data='+encodeURIComponent(payload),
-        mode:'no-cors'
-      }).then(()=>{
-        console.log('Projects synced to Sheets via fetch');
-      }).catch(()=>{
-        // Fallback to iframe form
-        ['__proj_if','__proj_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
-        const iframe=document.createElement('iframe');iframe.id='__proj_if';iframe.name='__proj_if';iframe.style.display='none';document.body.appendChild(iframe);
-        const form=document.createElement('form');form.id='__proj_fm';form.method='POST';form.action=APP_CONFIG.sheetsURL;form.target='__proj_if';form.style.display='none';
-        const inp=document.createElement('input');inp.type='hidden';inp.name='data';
-        inp.value=payload;
-        form.appendChild(inp);document.body.appendChild(form);form.submit();
-      });
+      // Use iframe POST — proven reliable method (same as PTW save)
+      ['__proj_if','__proj_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
+      const iframe=document.createElement('iframe');
+      iframe.id='__proj_if';iframe.name='__proj_if';iframe.style.display='none';
+      document.body.appendChild(iframe);
+      const form=document.createElement('form');
+      form.id='__proj_fm';form.method='POST';
+      form.action=APP_CONFIG.sheetsURL;
+      form.target='__proj_if';form.style.display='none';
+      const inp=document.createElement('input');inp.type='hidden';inp.name='data';
+      inp.value=JSON.stringify({action:'saveProjects',projects:projects});
+      form.appendChild(inp);document.body.appendChild(form);form.submit();
+      console.log('Projects sync submitted via form POST:',projects.length);
     }catch(e){console.warn('Project sync error:',e);}
   },
   loadFromSheets(){
@@ -1975,22 +1970,22 @@ function reloadProjectsFromSheets(){
 function forceSyncProjectsToSheets(){
   const projects=PDB.getAll().filter(p=>p.id&&p.name);
   if(projects.length===0){toast('No projects to sync','warning');return;}
-  toast('☁️ Syncing '+projects.length+' project(s)...','info');
-  // Use fetch directly
-  const payload=JSON.stringify({action:'saveProjects',token:'BOSH2026SECURE#PTW',projects:projects});
-  fetch(APP_CONFIG.sheetsURL,{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'data='+encodeURIComponent(payload),
-    mode:'no-cors'
-  }).then(()=>{
-    toast('✅ '+projects.length+' projects saved to Google Sheets! Supervisor will see them now.','success');
-    console.log('Force sync done:',projects.map(p=>p.name));
-  }).catch(e=>{
-    console.warn('Fetch failed, trying form:',e);
-    PDB._syncToSheets(projects);
-    setTimeout(()=>toast('✅ Projects synced via backup method!','success'),2000);
-  });
+  toast('☁️ Syncing '+projects.length+' project(s) to Google Sheets...','info');
+  // Use same iframe POST method as PTW records (proven reliable)
+  ['__projf_if','__projf_fm'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});
+  const iframe=document.createElement('iframe');
+  iframe.id='__projf_if';iframe.name='__projf_if';iframe.style.display='none';
+  document.body.appendChild(iframe);
+  const form=document.createElement('form');
+  form.id='__projf_fm';form.method='POST';
+  form.action=APP_CONFIG.sheetsURL;
+  form.target='__projf_if';form.style.display='none';
+  const inp=document.createElement('input');inp.type='hidden';inp.name='data';
+  inp.value=JSON.stringify({action:'saveProjects',projects:projects});
+  form.appendChild(inp);document.body.appendChild(form);form.submit();
+  setTimeout(()=>{
+    toast('✅ '+projects.length+' projects synced! Check Google Sheets now.','success');
+  },3000);
 }
 
 function addProject(){
