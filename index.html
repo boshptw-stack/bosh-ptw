@@ -1509,13 +1509,16 @@ function autoSaveClosedPDF(ptw){
       doc.text('Safety Check Item',M+2,y+5);doc.text('Result',M+CW-20,y+5);y+=9;
       (clDefClosed.items||[]).forEach((item,ii)=>{
         cp2(7);
-        const v=clDataClosed[item]||'';
+        const itemKey=item.id||item.text||item;
+        const itemText=item.text||item.id||item;
+        const v=clDataClosed[itemKey]||clDataClosed[itemText]||'';
+        const item2=typeof itemText==='string'?itemText:String(itemText);
         const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
         const bg=ii%2===0?[250,252,255]:[255,255,255];
         doc.setFillColor(...bg);doc.rect(M,y,CW,7,'F');
         doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);
         doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','normal');
-        const it=doc.splitTextToSize(item,CW-28);doc.text(it[0],M+2,y+5);
+        const it=doc.splitTextToSize(item2,CW-28);doc.text(it[0]||'',M+2,y+5);
         const vc={yes:[34,197,94],no:[239,68,68],na:[107,114,128],others:[245,158,11]}[v]||[107,114,128];
         doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,M+CW-18,y+5);y+=7;
       });
@@ -1782,10 +1785,14 @@ function genPDF(){
     doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name+' Safety Checklist',M,y);y+=8;
     doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Safety Check Item',M+2,y+5);doc.text('Result',M+CW-20,y+5);y+=9;
     cl.items.forEach((item,ii)=>{
-      cp(7);const v=ptw.checklist[item]||'';const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
+      cp(7);
+      const iKey=item.id||item.text||item;
+      const iTxt=typeof (item.text||item)==='string'?(item.text||item):String(iKey);
+      const v=clDataGen[iKey]||clDataGen[iTxt]||'';
+      const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
       const bg=ii%2===0?[250,252,255]:[255,255,255];doc.setFillColor(...bg);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);
       doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','normal');
-      const it=doc.splitTextToSize(item,CW-28);doc.text(it[0],M+2,y+5);
+      const it=doc.splitTextToSize(iTxt,CW-28);doc.text(it[0]||'',M+2,y+5);
       const vc={yes:[34,197,94],no:[239,68,68],na:[107,114,128],others:[245,158,11]}[v]||[107,114,128];
       doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,M+CW-18,y+5);y+=7;
     });
