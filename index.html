@@ -1511,7 +1511,8 @@ function autoSaveClosedPDF(ptw){
         cp2(7);
         const itemKey=item.id||item.text||item;
         const itemText=item.text||item.id||item;
-        const v=clDataClosed[itemKey]||clDataClosed[itemText]||'';
+        const rawVC=clDataClosed[itemKey]||clDataClosed[itemText]||'';
+        const v=typeof rawVC==='object'?(rawVC.result||rawVC.value||rawVC.v||''):rawVC;
         const item2=typeof itemText==='string'?itemText:String(itemText);
         const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
         const bg=ii%2===0?[250,252,255]:[255,255,255];
@@ -1645,7 +1646,7 @@ function autoSavePDFtoDrive(ptw){
     doc.setFillColor(...navy);doc.rect(M,y,CW,9,'F');
     doc.setTextColor(...white);doc.setFontSize(10);doc.setFont('helvetica','bold');
     doc.text('Equipment / Tools Involved',M+3,y+6.5);y+=13;
-    const equipTxt=(ptw.equipment||'').trim();
+    const equipTxt=(ptwForPDF.equipment||ptw.equipment||'').trim();
     const equipLines=doc.splitTextToSize(equipTxt||'No equipment listed',CW-6);
     const equipH=Math.max(10,equipLines.length*5+6);
     cp(equipH);
@@ -1662,7 +1663,8 @@ function autoSavePDFtoDrive(ptw){
       doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name+' Safety Checklist',M,y);y+=8;
       doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Safety Check Item',M+2,y+5);doc.text('Result',W-M-22,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
       cl.items.forEach((item,i)=>{
-        const v=ptwForPDF.checklist[item.id]||'yes';
+        const rawV=clDataAuto[item.id]||clDataAuto[item.text]||'';
+        const v=typeof rawV==='object'?(rawV.result||rawV.value||rawV.v||''):rawV;
         const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
         const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
         doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);
@@ -1788,7 +1790,8 @@ function genPDF(){
       cp(7);
       const iKey=item.id||item.text||item;
       const iTxt=typeof (item.text||item)==='string'?(item.text||item):String(iKey);
-      const v=clDataGen[iKey]||clDataGen[iTxt]||'';
+      const rawVG=clDataGen[iKey]||clDataGen[iTxt]||'';
+      const v=typeof rawVG==='object'?(rawVG.result||rawVG.value||rawVG.v||''):rawVG;
       const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
       const bg=ii%2===0?[250,252,255]:[255,255,255];doc.setFillColor(...bg);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);
       doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','normal');
