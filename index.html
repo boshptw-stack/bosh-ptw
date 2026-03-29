@@ -1495,16 +1495,21 @@ function autoSaveClosedPDF(ptw){
     // CHECKLIST — same as approved PDF
     const clsClosed=DB.getChecklists();
     const clClosed=clsClosed[ptw.type];
-    if(clClosed&&ptw.checklist&&Object.keys(ptw.checklist).length>0){
+    // Parse checklist if stored as JSON string (from Google Sheets)
+    let clDataClosed=ptw.checklist||{};
+    if(typeof clDataClosed==='string'){try{clDataClosed=JSON.parse(clDataClosed);}catch(e){clDataClosed={};}}
+    // Use DEFAULT_CHECKLISTS as fallback for type definitions
+    const clDefClosed=clClosed||(DEFAULT_CHECKLISTS&&DEFAULT_CHECKLISTS[ptw.type])||null;
+    if(clDefClosed&&Object.keys(clDataClosed).length>0){
       cp2(12);doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;
       doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');
-      doc.text(ptw.id+'-01: '+clClosed.name+' Safety Checklist',M,y);y+=8;
+      doc.text(ptw.id+'-01: '+(clDefClosed.name||clDefClosed.id||ptw.type)+' Safety Checklist',M,y);y+=8;
       doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');
       doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');
       doc.text('Safety Check Item',M+2,y+5);doc.text('Result',M+CW-20,y+5);y+=9;
-      clClosed.items.forEach((item,ii)=>{
+      (clDefClosed.items||[]).forEach((item,ii)=>{
         cp2(7);
-        const v=ptw.checklist[item]||'';
+        const v=clDataClosed[item]||'';
         const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
         const bg=ii%2===0?[250,252,255]:[255,255,255];
         doc.setFillColor(...bg);doc.rect(M,y,CW,7,'F');
@@ -1646,7 +1651,10 @@ function autoSavePDFtoDrive(ptw){
     doc.setFont('helvetica',equipTxt?'normal':'italic');
     doc.text(equipLines,M+3,y+6);y+=equipH+4;
     // Checklist
-    if(cl&&ptwForPDF.checklist&&Object.keys(ptwForPDF.checklist).length>0){
+    // Parse checklist if string
+    let clDataAuto=ptwForPDF.checklist||{};
+    if(typeof clDataAuto==='string'){try{clDataAuto=JSON.parse(clDataAuto);}catch(e){clDataAuto={};}}
+    if(cl&&Object.keys(clDataAuto).length>0){
       cp(12);doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;
       doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name+' Safety Checklist',M,y);y+=8;
       doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Safety Check Item',M+2,y+5);doc.text('Result',W-M-22,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
@@ -1766,7 +1774,10 @@ function genPDF(){
   doc.setTextColor(eqTxtG?10:150,eqTxtG?22:150,eqTxtG?40:150);doc.setFontSize(9);doc.setFont('helvetica',eqTxtG?'normal':'italic');
   doc.text(eqLinesG,M+3,y+6);y+=eqHG+4;
   // CHECKLIST
-  if(cl&&ptw.checklist&&Object.keys(ptw.checklist).length>0){
+  // Parse checklist if string
+  let clDataGen=ptw.checklist||{};
+  if(typeof clDataGen==='string'){try{clDataGen=JSON.parse(clDataGen);}catch(e){clDataGen={};}}
+  if(cl&&Object.keys(clDataGen).length>0){
     cp(12);doc.setFillColor(...orange);doc.rect(M,y,CW,3,'F');y+=6;
     doc.setTextColor(...navy);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(ptw.id+'-01: '+cl.name+' Safety Checklist',M,y);y+=8;
     doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Safety Check Item',M+2,y+5);doc.text('Result',M+CW-20,y+5);y+=9;
