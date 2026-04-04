@@ -801,6 +801,14 @@ function toast(msg,type='info'){
   container.prepend(t);
   setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(-10px)';t.style.transition='all 0.3s';setTimeout(()=>t.remove(),300);},4000);
 }
+
+function handleChecklistOthers(itemId, value){
+  const txt = document.getElementById('others-txt-'+itemId);
+  if(txt) txt.style.display = value==='others' ? 'inline-block' : 'none';
+}
+function saveOthersText(itemId, value){
+  // Just keeps input visible - value collected on submit
+}
 function closeModal(id){document.getElementById(id).classList.remove('active');}
 
 // ================================================================
@@ -1219,7 +1227,18 @@ function updateChecklist(){
   if(!type||!cls[type]){card.style.display='none';return;}
   card.style.display='block';const cl=cls[type];
   document.getElementById('cl-title').innerHTML=`✅ 4. ${cl.name} Safety Checklist`;
-  body.innerHTML=cl.items.map(item=>`<tr><td>${item.text}</td>${['yes','no','na','others'].map(opt=>`<td><label class="check-opt"><input type="radio" name="${item.id}" value="${opt}" ${opt==='yes'?'checked':''}> ${opt.toUpperCase()}</label></td>`).join('')}</tr>`).join('');
+  body.innerHTML=cl.items.map(item=>`
+    <tr>
+      <td>${item.text}</td>
+      ${['yes','no','na','others'].map(opt=>`
+        <td><label class="check-opt">
+          <input type="radio" name="${item.id}" value="${opt}" ${opt==='yes'?'checked':''} onchange="handleChecklistOthers('${item.id}',this.value)">
+          ${opt.toUpperCase()}
+        </label></td>`).join('')}
+      <td><input type="text" id="others-txt-${item.id}" placeholder="Specify..." 
+        style="display:none;border:1px solid #E2E8F0;border-radius:6px;padding:5px 8px;font-size:12px;width:140px"
+        oninput="saveOthersText('${item.id}',this.value)"></td>
+    </tr>`).join('');
   setTimeout(()=>{const c=document.getElementById('cl-card');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});},100);
 }
 function addW(){const l=document.getElementById('workers-list');const r=document.createElement('div');r.className='worker-row';r.innerHTML=`<input type="text" placeholder="Worker Name" class="w-name"><input type="text" placeholder="Trade / Designation" class="w-trade"><button class="remove-btn" onclick="removeW(this)">×</button>`;l.appendChild(r);}
@@ -1279,7 +1298,16 @@ function _submitPTWWithId(ptwId){
   if(!ticEmail){toast('Please select a Person In Charge (PIC).','error');return;}
   if(!newSig){toast('Please sign the declaration first.','error');return;}
   const cls=DB.getChecklists();const checklist={};
-  if(cls[type])cls[type].items.forEach(item=>{const c=document.querySelector(`input[name="${item.id}"]:checked`);checklist[item.id]=c?c.value:'yes';});
+  if(cls[type])cls[type].items.forEach(item=>{
+    const c=document.querySelector(`input[name="${item.id}"]:checked`);
+    const val=c?c.value:'yes';
+    if(val==='others'){
+      const txt=document.getElementById('others-txt-'+item.id)?.value?.trim()||'';
+      checklist[item.id]={result:'others',text:txt};
+    } else {
+      checklist[item.id]=val;
+    }
+  });
   const workers=[];
   document.querySelectorAll('.worker-row').forEach(row=>{const n=row.querySelector('.w-name')?.value.trim();const t=row.querySelector('.w-trade')?.value.trim();if(n)workers.push({name:n,trade:t||''});});
   const ptw={
@@ -1395,7 +1423,18 @@ function actionPanel(ptw){
     return approvePanel('pm','Final Approval — Authorize Work to Proceed');
   }
   if(ptw.status==='active'){
-    if(r==='supervisor')return closePanel();
+    // Only the supervisor who APPLIED this PTW can close it
+    const applicantEmail=(ptw.stages?.supervisor?.email||ptw.supervisorEmail||'').toLowerCase();
+    if(r==='supervisor'){
+      if(me===applicantEmail||!applicantEmail){
+        return closePanel();
+      } else {
+        return `<div class="alert alert-warning" style="margin-top:18px">
+          <b>⛔ Cannot Close This PTW</b><br>
+          Only <b>${ptw.stages?.supervisor?.name||'the original supervisor'}</b> who applied this PTW can close it.
+        </div>`;
+      }
+    }
     if(r==='pm')return closePanelPM();
     if(r==='admin')return closePanel();
   }
@@ -1602,6 +1641,7 @@ function autoSaveClosedPDF(ptw){
         const itemText=item.text||item.id||item;
         const rawVC=clDataClosed[itemKey]||clDataClosed[itemText]||'';
         const v=typeof rawVC==='object'?(rawVC.result||rawVC.value||rawVC.v||''):rawVC;
+        const othersTextC=typeof rawVC==='object'&&rawVC.result==='others'?(rawVC.text||''):'';
         const item2=typeof itemText==='string'?itemText:String(itemText);
         const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
         const bg=ii%2===0?[250,252,255]:[255,255,255];
@@ -1609,8 +1649,10 @@ function autoSaveClosedPDF(ptw){
         doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);
         doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','normal');
         const it=doc.splitTextToSize(item2,CW-28);doc.text(it[0]||'',M+2,y+5);
+        const dispC=v==='others'&&othersTextC?'Others: '+othersTextC:vl;
         const vc={yes:[34,197,94],no:[239,68,68],na:[107,114,128],others:[245,158,11]}[v]||[107,114,128];
-        doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,M+CW-18,y+5);y+=7;
+        doc.setTextColor(...vc);doc.setFont('helvetica','bold');
+        const dispLC=doc.splitTextToSize(dispC,35);doc.text(dispLC[0],M+CW-20,y+5);y+=7;
       });
       y+=6;
     }
@@ -1753,12 +1795,17 @@ function autoSavePDFtoDrive(ptw){
       doc.setFillColor(...lgray);doc.rect(M,y,CW,7,'F');doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('Safety Check Item',M+2,y+5);doc.text('Result',W-M-22,y+5);doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);y+=7;
       cl.items.forEach((item,i)=>{
         const rawV=clDataAuto[item.id]||clDataAuto[item.text]||'';
-        const v=typeof rawV==='object'?(rawV.result||rawV.value||rawV.v||''):rawV;
+        let v=typeof rawV==='object'?(rawV.result||rawV.value||rawV.v||''):rawV;
+        const othersText=typeof rawV==='object'&&rawV.result==='others'?(rawV.text||''):'';
         const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
         const tl=doc.splitTextToSize(item.text,CW-32);const rh=Math.max(8,tl.length*4.2+3);cp(rh);
         doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:255);doc.rect(M,y,CW,rh,'F');doc.setDrawColor(210,220,235);doc.rect(M,y,CW,rh);
         doc.setTextColor(...navy);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(tl,M+2,y+5);
-        const vc=v==='yes'?[34,150,80]:v==='no'?[200,50,50]:[90,110,140];doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,W-M-25,y+5);y+=rh;
+        const dispVal=v==='others'&&othersText?'Others: '+othersText:vl;
+        const vc=v==='yes'?[34,150,80]:v==='no'?[200,50,50]:v==='na'?[90,110,140]:[245,158,11];
+        doc.setTextColor(...vc);doc.setFont('helvetica','bold');
+        const dispLines=doc.splitTextToSize(dispVal,50);
+        doc.text(dispLines[0],W-M-25,y+5);y+=rh;
       });y+=6;
     }
     // Stage helper
@@ -1881,9 +1928,11 @@ function genPDF(){
       const iTxt=typeof (item.text||item)==='string'?(item.text||item):String(iKey);
       const rawVG=clDataGen[iKey]||clDataGen[iTxt]||'';
       const v=typeof rawVG==='object'?(rawVG.result||rawVG.value||rawVG.v||''):rawVG;
+      const othersTextG=typeof rawVG==='object'&&rawVG.result==='others'?(rawVG.text||''):'';
       const vl={yes:'Yes',no:'No',na:'N/A',others:'Others'}[v]||v;
       const bg=ii%2===0?[250,252,255]:[255,255,255];doc.setFillColor(...bg);doc.rect(M,y,CW,7,'F');doc.setDrawColor(...lgray);doc.rect(M,y,CW,7);
       doc.setTextColor(...navy);doc.setFontSize(8);doc.setFont('helvetica','normal');
+      const dispG=v==='others'&&othersTextG?vl+': '+othersTextG:vl;
       const it=doc.splitTextToSize(iTxt,CW-28);doc.text(it[0]||'',M+2,y+5);
       const vc={yes:[34,197,94],no:[239,68,68],na:[107,114,128],others:[245,158,11]}[v]||[107,114,128];
       doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,M+CW-18,y+5);y+=7;
