@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <meta name="theme-color" content="#1E3A6E">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1179,43 +1179,62 @@ function renderNewPTW(){
     <style>@keyframes spin{to{transform:rotate(360deg)}}
 /* ── MOBILE RESPONSIVE ──────────────────────────────────────── */
 @media(max-width:768px){
-  .app-header{padding:0 10px;height:52px}
-  .header-left{gap:6px}
-  .app-logo{font-size:14px}
-  .header-right{gap:5px}
-  .btn-sm{font-size:11px;padding:5px 9px}
-  #session-timer{font-size:9px;padding:3px 6px;min-width:48px}
-  .app-content{padding:12px 10px}
-  .page-title{flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:14px}
-  .page-title h2{font-size:20px}
-  .stats-grid{grid-template-columns:1fr 1fr;gap:10px}
-  .stat-card{padding:14px 12px}
-  .stat-value{font-size:32px}
-  .stat-label{font-size:11px}
-  .filter-bar{flex-wrap:wrap;gap:6px}
-  .filter-bar .btn{font-size:11px;padding:5px 10px}
-  .ptw-card{padding:12px}
-  .ptw-card-header{flex-direction:column;align-items:flex-start;gap:6px}
-  .ptw-actions{flex-wrap:wrap;gap:5px}
-  .form-row{grid-template-columns:1fr;gap:10px}
-  .form-card{padding:14px 12px}
-  .checklist-table{font-size:12px}
-  .checklist-table td,.checklist-table th{padding:8px 6px}
-  .sig-box{flex-direction:column;gap:8px}
-  .sig-img{width:100%;height:70px}
-  table{font-size:12px}
-  .modal-content{padding:16px 12px;width:95vw}
-  h3{font-size:15px}
-  .btn-primary,.btn-outline,.btn-danger{font-size:13px;padding:9px 14px}
-  #app-content-new .form-card{padding:14px 12px}
-  .stage-section{padding:12px}
-  .step-num{width:28px;height:28px;font-size:13px}
+  *{-webkit-text-size-adjust:100%}
+  body{overflow-x:hidden}
+  .app-header{padding:0 10px!important;height:50px!important;gap:6px}
+  .app-logo{font-size:13px!important}
+  .header-left{gap:5px!important}
+  .header-right{gap:4px!important}
+  .btn-sm{font-size:11px!important;padding:5px 8px!important}
+  #session-timer{font-size:9px!important;padding:3px 5px!important}
+  .app-content{padding:10px 8px!important}
+  .page-title{margin-bottom:12px!important}
+  .page-title h2{font-size:18px!important}
+  .stats-grid{grid-template-columns:1fr 1fr!important;gap:8px!important;margin-bottom:12px!important}
+  .stat-card{padding:12px 8px!important}
+  .stat-value{font-size:28px!important}
+  .stat-label{font-size:10px!important}
+  .filter-bar{flex-wrap:wrap!important;gap:5px!important;margin-bottom:10px!important}
+  .filter-bar .btn{font-size:11px!important;padding:5px 9px!important}
+  .ptw-card{padding:10px!important;margin-bottom:8px!important}
+  .ptw-card-header{flex-wrap:wrap!important;gap:4px!important}
+  .ptw-id{font-size:14px!important}
+  .ptw-meta{font-size:11px!important}
+  .ptw-actions{flex-wrap:wrap!important;gap:5px!important;margin-top:8px!important}
+  .ptw-actions .btn{font-size:11px!important;padding:6px 10px!important}
+  .form-row{grid-template-columns:1fr!important;gap:10px!important}
+  .form-card{padding:12px 10px!important;margin-bottom:12px!important}
+  .form-card h3{font-size:14px!important}
+  .form-group label{font-size:12px!important}
+  .form-group input,.form-group select,.form-group textarea{font-size:14px!important;padding:10px!important}
+  .checklist-table{font-size:11px!important}
+  .checklist-table td,.checklist-table th{padding:7px 5px!important}
+  .check-opt{font-size:10px!important}
+  .stage-section{padding:10px!important}
+  .stage-header{gap:8px!important}
+  .step-num{width:26px!important;height:26px!important;font-size:12px!important}
+  .sig-box{flex-direction:column!important;gap:8px!important}
+  .sig-canvas{width:100%!important;height:120px!important}
+  .modal-content{padding:14px 10px!important;width:95vw!important;max-height:90vh!important;overflow-y:auto!important}
+  .modal-content h3{font-size:14px!important}
+  table{font-size:11px!important;display:block!important;overflow-x:auto!important;white-space:nowrap!important}
+  .btn-primary,.btn-outline,.btn-danger,.btn-warning{font-size:13px!important;padding:10px 14px!important}
+  .worker-row{flex-direction:column!important;gap:6px!important}
+  .worker-row input{width:100%!important}
+  .report-card{padding:12px!important}
+  .dashboard-grid{grid-template-columns:1fr!important}
+  #new-ptw-form .form-card{padding:12px!important}
+  .checklist-section{overflow-x:auto!important}
+  .alert{font-size:12px!important;padding:10px!important}
 }
 @media(max-width:400px){
-  .stats-grid{grid-template-columns:1fr 1fr}
-  .stat-value{font-size:26px}
-  .header-right .btn-sm:not([onclick*="logout"]){display:none}
-  #session-timer{display:none}
+  .stat-value{font-size:22px!important}
+  .stats-grid{gap:6px!important}
+  .app-logo{font-size:12px!important}
+  .btn-sm{font-size:10px!important;padding:4px 6px!important}
+  #session-timer{display:none!important}
+  .ptw-card{padding:8px!important}
+  .filter-bar .btn{font-size:10px!important;padding:4px 7px!important}
 }
 </style>
     <div style="display:flex;gap:9px;flex-wrap:wrap">
