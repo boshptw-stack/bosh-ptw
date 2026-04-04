@@ -606,7 +606,21 @@ const STATUS_LABELS = {
 // DB LAYER
 // ================================================================
 const DB = {
-  getChecklists(){try{const s=localStorage.getItem('ptw_checklists');return s?JSON.parse(s):DEFAULT_CHECKLISTS;}catch{return DEFAULT_CHECKLISTS;}},
+  getChecklists(){
+    // Always use Sheets data — never hardcoded defaults
+    try{
+      const s=localStorage.getItem('ptw_checklists');
+      if(s){
+        const parsed=JSON.parse(s);
+        if(parsed&&Object.keys(parsed).length>0&&Object.values(parsed)[0]?.items?.length>0){
+          return parsed;
+        }
+      }
+    }catch(e){}
+    // Not loaded yet — trigger load and return empty (form will wait)
+    this.loadChecklistsFromSheets();
+    return {};
+  },
   saveChecklists(c){
     localStorage.setItem('ptw_checklists',JSON.stringify(c));
     // Sync to Sheets
@@ -624,23 +638,26 @@ const DB = {
       const script=document.createElement('script');
       window.__clLoaded=function(data){
         if(data&&data.success&&data.checklists){
-          // Normalize Sheets format to match DEFAULT_CHECKLISTS format
           const raw=data.checklists;
+          const COLORS={'GEN':'#3B82F6','HW':'#EF4444','WAH':'#22C55E','CS':'#A855F7','LW':'#F59E0B','EXC':'#14B8A6'};
           const normalized={};
           Object.keys(raw).forEach(key=>{
             const cl=raw[key];
             normalized[key]={
               name: cl.name||key,
               code: key,
-              color: DEFAULT_CHECKLISTS[key]?.color||'#3B82F6',
+              color: COLORS[key]||'#3B82F6',
               items: (cl.items||[]).map((item,i)=>{
-                if(typeof item==='string') return {id:key.toLowerCase()+i,text:item};
-                return {id:item.id||key.toLowerCase()+i, text:item.text||item.id||String(item)};
-              })
+                if(typeof item==='string') return {id:key.toLowerCase()+(i+1),text:item};
+                return {id:item.id||key.toLowerCase()+(i+1), text:item.text||item.id||String(item)};
+              }).filter(item=>item.text&&item.text.trim())
             };
           });
           localStorage.setItem('ptw_checklists',JSON.stringify(normalized));
-          console.log('Checklists loaded+normalized from Sheets:',Object.keys(normalized));
+          console.log('✅ Checklists from Sheets:',Object.keys(normalized).join(', '));
+          // Refresh checklist if PTW form is open
+          const typeEl=document.getElementById('ptw-type');
+          if(typeEl&&typeEl.value)renderChecklist(typeEl.value);
         }
         try{document.head.removeChild(script);}catch(e){}
         delete window.__clLoaded;
@@ -886,6 +903,11 @@ function logout(){
 // PAGE ROUTER
 // ================================================================
 function resetChecklistsIfNeeded(){
+  // Always clear cache so fresh Sheets data loads every session
+  localStorage.removeItem('ptw_checklists');
+  console.log('Checklist cache cleared — loading from Sheets...');
+}
+function _OLD_resetChecklistsIfNeeded_DISABLED(){
   try{
     const stored=localStorage.getItem('ptw_checklists');
     if(!stored){
@@ -1927,7 +1949,8 @@ function genPDF(){
       const dispG=v==='others'&&othersTextG?vl+': '+othersTextG:vl;
       const it=doc.splitTextToSize(iTxt,CW-28);doc.text(it[0]||'',M+2,y+5);
       const vc={yes:[34,197,94],no:[239,68,68],na:[107,114,128],others:[245,158,11]}[v]||[107,114,128];
-      doc.setTextColor(...vc);doc.setFont('helvetica','bold');doc.text(vl,M+CW-18,y+5);y+=7;
+      doc.setTextColor(...vc);doc.setFont('helvetica','bold');
+      const dispGLines=doc.splitTextToSize(dispG,32);doc.text(dispGLines[0],M+CW-20,y+5);y+=7;
     });
     y+=6;
   }
