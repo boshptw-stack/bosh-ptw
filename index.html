@@ -443,15 +443,7 @@ const PDB = {
 // ================================================================
 // USER DATABASE
 // ================================================================
-const DEFAULT_USERS = [
-  {id:'u1',name:'Admin',email:'boshptw@gmail.com',role:'admin',company:'Bosh Engineering Pte. Ltd.',password:'admin123',active:true,phone:'',wakey:''},
-  {id:'u2',name:'Vela',email:'anbulive8@gmail.com',role:'supervisor',company:'Self',password:'Anbu1989',active:true,phone:'6591234567',wakey:''},
-  {id:'u3',name:'Anbu',email:'anbarasu@bosh.sg',role:'pic',company:'Bosh Engineering Pte. Ltd.',password:'Raja1989',active:true,phone:'6591234568',wakey:''},
-  {id:'u4',name:'Subsa',email:'anbulkc@gmail.com',role:'ehs',company:'Bosh Engineering Pte. Ltd.',password:'Subsh1989',active:true,phone:'6591234569',wakey:''},
-  {id:'u5',name:'Kalee',email:'tamilastro916@gmail.com',role:'pm',company:'Bosh Engineering Pte. Ltd.',password:'Anbu123',active:true,phone:'6591234570',wakey:''},
-  {id:'u6',name:'pandi',email:'2025bosh@gmail.com',role:'pm',company:'Bosh Engineering Pte. Ltd.',password:'Raja123',active:true,phone:'',wakey:''},
-  {id:'u7',name:'samy',email:'boseblock7@gmail.com',role:'supervisor',company:'Bosh Engineering Pte. Ltd.',password:'Samy123',active:true,phone:'',wakey:''},
-];
+const DEFAULT_USERS = []; // Users loaded from Google Sheets only - no hardcoded credentials
 const UDB = {
   _cache:null,_cacheTime:0,CACHE_MS:60000,
   getAll(){
@@ -460,7 +452,7 @@ const UDB = {
       const s=localStorage.getItem('ptw_users_gs');
       if(s){const u=JSON.parse(s);if(u&&u.length>0){this._cache=u;this._cacheTime=Date.now();return u;}}
     }catch(e){}
-    return DEFAULT_USERS;
+    return []; // Load from Sheets only
   },
   loadFromSheets(){
     try{
