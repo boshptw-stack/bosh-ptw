@@ -825,6 +825,21 @@ function handleChecklistOthers(itemId, value){
 function saveOthersText(itemId, value){
   // Just keeps input visible - value collected on submit
 }
+
+// ── APP NOTIFICATION BRIDGE ─────────────────────────────────────
+function sendAppNotification(title, body, data) {
+  try {
+    if(window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'NOTIFY',
+        title: title,
+        body: body,
+        data: data || {}
+      }));
+    }
+  } catch(e) {}
+}
+
 function closeModal(id){document.getElementById(id).classList.remove('active');}
 
 // ================================================================
@@ -2259,6 +2274,7 @@ function addProject(){
   if(existing){toast('Project code "'+code+'" already exists.','error');return;}
   PDB.add({name,code,client,location,status:'active'});
   toast('✅ Project "'+name+'" added!','success');
+      sendAppNotification('PTW APPROVED - Work May Proceed',CP.id+' — '+((CP&&CP.project)||''),{status:'active'});
   renderAdmin();
 }
 
