@@ -238,6 +238,13 @@ input[type=datetime-local]{color-scheme:light}
   .detail-grid{grid-template-columns:1fr}
 }
 </style>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bosh PTW">
+  <meta name="theme-color" content="#1E3A6E">
 </head>
 <body>
 
@@ -2019,7 +2026,7 @@ function genPDF(){
       } else {
         // Fallback: open in same window
         const w=window.open('','_blank');
-        if(w){w.document.write('<html><head><title>'+filename+'</title></head><body style="margin:0"><iframe src="'+b64+'" style="width:100%;height:100vh;border:none"></iframe></body></html>');w.document.close();}
+        if(w){w.location.href=b64;}
       }
     } else {
       // Normal browser: download file
@@ -2032,12 +2039,7 @@ function genPDF(){
       toast('✅ PDF downloaded!','success');
     }
   }catch(e){
-    // Final fallback: open as data URI
-    try{
-      const w=window.open('');
-      if(w){w.document.write('<html><body style="margin:0"><iframe src="'+doc.output('datauristring')+'" style="width:100%;height:100vh;border:none"></iframe></body></html>');w.document.close();}
-      else toast('PDF error: '+e.message,'error');
-    }catch(e2){toast('PDF error: '+e2.message,'error');}
+    toast('PDF error: '+e.message,'error');
   }
 }
 
