@@ -861,7 +861,7 @@ function captureGPS(callback){
 // ================================================================
 function renderHeader(tid){
   const rc={supervisor:'#F59E0B',pic:'#3B82F6',ehs:'#22C55E',pm:'#A855F7',admin:'#1E3A6E',project_admin:'#0D9488'};
-  const rl={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS Officer',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
+  const rl={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
   const col=rc[CU.role]||'#9CA3AF';
   document.getElementById(tid).innerHTML=`
   <header class="app-header">
@@ -1165,20 +1165,7 @@ function renderNewPTW(){
         ${UDB.getAll().filter(u=>u.role==='pic'&&u.active!==false).map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PIC (${u.email})</option>`).join('')}
       </select>
     </div>
-    <div class="form-group" style="margin-top:12px">
-      <label>Assign To — EHS Officer * <span style="color:var(--danger)">Only this person can assess</span></label>
-      <select id="f-ehs">
-        <option value="">-- Select EHS Officer --</option>
-        ${UDB.getAll().filter(u=>u.role==='ehs'&&u.active!==false).map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — EHS (${u.email})</option>`).join('')}
-      </select>
-    </div>
-    <div class="form-group" style="margin-top:12px">
-      <label>Assign To — Project Manager (PM) * <span style="color:var(--danger)">Only this person can approve</span></label>
-      <select id="f-pm">
-        <option value="">-- Select PM --</option>
-        ${UDB.getAll().filter(u=>u.role==='pm'&&u.active!==false).map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PM (${u.email})</option>`).join('')}
-      </select>
-    </div>
+    
   </div>
   <div class="form-card">
     <h3>👷 2. Workers Involved *</h3>
@@ -1365,10 +1352,9 @@ function _submitPTWWithId(ptwId){
   if(!equip){toast('⚠ Equipment / Tools list is required.','error');document.getElementById('f-equip').focus();return;}
   const ticEl=document.getElementById('f-tic');const ticEmail=ticEl?ticEl.value:'';const ticName=ticEl?ticEl.options[ticEl.selectedIndex]?.dataset?.name||'':'';
   if(!ticEmail){toast('Please select a Person In Charge (PIC).','error');return;}
-  const ehsEl=document.getElementById('f-ehs');const ehsEmail=ehsEl?ehsEl.value:'';const ehsName=ehsEl?ehsEl.options[ehsEl.selectedIndex]?.dataset?.name||'':'';
-  if(!ehsEmail){toast('Please select an EHS Officer.','error');return;}
-  const pmEl=document.getElementById('f-pm');const pmEmail=pmEl?pmEl.value:'';const pmName=pmEl?pmEl.options[pmEl.selectedIndex]?.dataset?.name||'':'';
-  if(!pmEmail){toast('Please select a Project Manager (PM).','error');return;}
+  // EHS assigned by PIC, PM assigned by EHS - not required at submission
+  const ehsEmail=''; const ehsName='';
+  const pmEmail=''; const pmName='';
   if(!newSig){toast('Please sign the declaration first.','error');return;}
   const cls=DB.getChecklists();const checklist={};
   if(cls[type])cls[type].items.forEach(item=>{
@@ -1498,8 +1484,8 @@ function actionPanel(ptw){
     const assigned=(ptw.assignedEHS?.email||'').toLowerCase();
     // STRICT: Only assigned EHS can approve
     if(!assigned) return `<div class="form-card" style="border-color:var(--warning);margin-top:18px">
-      <h3 style="color:var(--warning)">⛔ No EHS Officer Assigned</h3>
-      <p style="font-size:13px;color:var(--text-muted)">No EHS Officer has been assigned to this PTW.<br>Contact the Supervisor to assign an EHS Officer.</p>
+      <h3 style="color:var(--warning)">⛔ No EHS Assigned</h3>
+      <p style="font-size:13px;color:var(--text-muted)">No EHS has been assigned to this PTW.<br>Contact the Supervisor to assign an EHS.</p>
     </div>`;
     if(assigned!==me) return `<div class="form-card" style="border-color:var(--warning);margin-top:18px">
       <h3 style="color:var(--warning)">⛔ Not Assigned to You</h3>
@@ -1541,8 +1527,8 @@ function actionPanel(ptw){
 
 function approvePanel(stageKey,label){
   let nextSel='';
-  if(stageKey==='pic'){const list=UDB.getAll().filter(u=>u.role==='ehs'&&u.active!==false);nextSel=`<div class="form-group"><label>Forward To — EHS Officer *</label><select id="next-person-select"><option value="">-- Select EHS --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — EHS (${u.email})</option>`).join('')}</select></div>`;}
-  else if(stageKey==='ehs'){const list=UDB.getAll().filter(u=>u.role==='pm'&&u.active!==false);nextSel=`<div class="form-group"><label>Forward To — Project Manager *</label><select id="next-person-select"><option value="">-- Select PM --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PM (${u.email})</option>`).join('')}</select></div>`;}
+  if(stageKey==='pic'){const list=UDB.getAll().filter(u=>u.role==='ehs'&&u.active!==false);nextSel=`<div class="form-group"><label>Assign To — EHS * <span style="color:var(--danger);font-size:11px">Only this person can assess</span></label><select id="next-person-select"><option value="">-- Select EHS --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — EHS (${u.email})</option>`).join('')}</select></div>`;}
+  else if(stageKey==='ehs'){const list=UDB.getAll().filter(u=>u.role==='pm'&&u.active!==false);nextSel=`<div class="form-group"><label>Assign To — Project Manager (PM) * <span style="color:var(--danger);font-size:11px">Only this person can approve</span></label><select id="next-person-select"><option value="">-- Select PM --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PM (${u.email})</option>`).join('')}</select></div>`;}
   return`<div class="form-card" style="border-color:var(--orange);margin-top:18px"><h3>⚡ Action Required — ${label}</h3>
   ${nextSel}
   <div class="form-group"><label>Remarks (Optional)</label><textarea id="approve-remarks" rows="2" placeholder="Add conditions or remarks..."></textarea></div>
@@ -1618,7 +1604,7 @@ function saveSig(){
 function doApprove(stageKey){
   if(!approveSig){toast('Please sign first.','error');return;}
   const sel=document.getElementById('next-person-select');
-  if((stageKey==='pic'||stageKey==='ehs')&&sel&&!sel.value){toast(`Please select the ${stageKey==='pic'?'EHS Officer':'Project Manager'}.`,'error');return;}
+  if((stageKey==='pic'||stageKey==='ehs')&&sel&&!sel.value){toast(`Please select the ${stageKey==='pic'?'EHS':'Project Manager'}.`,'error');return;}
   const ptw=DB.getPTWs().find(p=>p.id===CP.id);
   const remarks=document.getElementById('approve-remarks')?.value||'';
   const nextStatus={pic:'pending_ehs',ehs:'pending_pm',pm:'active'};
@@ -1770,7 +1756,7 @@ function autoSaveClosedPDF(ptw){
       y+=bH+3;};
     secT(1,'Permit Application — Supervisor');sigR(ptwForPDF.stages?.supervisor);
     secT(2,'Verification by Person In Charge');sigR(ptwForPDF.stages?.pic);
-    secT(3,'Assessment by EHS Officer');sigR(ptwForPDF.stages?.ehs);
+    secT(3,'Assessment by EHS');sigR(ptwForPDF.stages?.ehs);
     secT(4,'Final Approval by Project Manager');sigR(ptwForPDF.stages?.pm);
     secT(5,'PTW Closed');sigR(ptwForPDF.stages?.close);
     const tp=doc.internal.getNumberOfPages();for(let i=1;i<=tp;i++){doc.setPage(i);doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(ptw.id+' [CLOSED]',M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});doc.text('PAGE '+i+' OF '+tp,W-M,293,{align:'right'});}
@@ -1947,7 +1933,7 @@ function autoSavePDFtoDrive(ptw){
     y+=22;
     secTitle(1,'Permit Application — Supervisor');sigRow(ptwForPDF.stages?.supervisor);
     secTitle(2,'Verification by Person In Charge');sigRow(ptwForPDF.stages?.pic);
-    secTitle(3,'Assessment by EHS Officer');sigRow(ptwForPDF.stages?.ehs);
+    secTitle(3,'Assessment by EHS');sigRow(ptwForPDF.stages?.ehs);
     secTitle(4,'Final Approval by Project Manager');sigRow(ptwForPDF.stages?.pm);
     if(ptwForPDF.stages?.close){secTitle(5,'PTW Closed');sigRow(ptwForPDF.stages.close);}
     // Page footer
@@ -2108,12 +2094,12 @@ function renderAdmin(){
   renderHeader('app-header-admin');
   const users=UDB.getAll();
   const roleColors={supervisor:'#F59E0B',pic:'#3B82F6',ehs:'#22C55E',pm:'#A855F7',admin:'#1E3A6E',project_admin:'#0D9488'};
-  const roleLabels={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS Officer',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
+  const roleLabels={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
   document.getElementById('admin-content').innerHTML=`
   <div class="page-title"><div><h2>⚙ Admin Panel</h2><div class="subtitle">Manage Users, Permit Types & System</div></div></div>
   <div class="form-card">
     <h3>👥 User Management</h3>
-    <div class="alert alert-info" style="margin-bottom:14px">Add Supervisors, PICs (Person In Charge), EHS Officers and Project Managers. Each logs in with their email and password.</div>
+    <div class="alert alert-info" style="margin-bottom:14px">Add Supervisors, PICs (Person In Charge), EHSs and Project Managers. Each logs in with their email and password.</div>
     <table class="checklist-table" style="margin-bottom:16px">
       <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Password</th><th>Signature</th><th>Status</th><th>Action</th></tr></thead>
       <tbody>
@@ -2145,7 +2131,7 @@ function renderAdmin(){
             <option value="project_admin">Project Admin</option>
             <option value="supervisor">Supervisor</option>
             <option value="pic">Person In Charge (PIC)</option>
-            <option value="ehs">EHS Officer</option>
+            <option value="ehs">EHS</option>
             <option value="pm">Project Manager</option>
           </select>
         </div>
