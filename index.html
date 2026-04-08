@@ -1022,9 +1022,9 @@ function isMyTask(ptw){
   const me=CU.email.toLowerCase(),r=CU.role;
   if(r==='admin')return true;
   if(r==='supervisor')return ptw.stages?.supervisor?.email?.toLowerCase()===me;
-  if(r==='pic'&&ptw.status==='pending_pic'){const a=(ptw.assignedPIC?.email||'').toLowerCase();return !a||a===me;}
-  if(r==='ehs'&&ptw.status==='pending_ehs'){const a=(ptw.assignedEHS?.email||'').toLowerCase();return !a||a===me;}
-  if(r==='pm'&&ptw.status==='pending_pm'){const a=(ptw.assignedPM?.email||'').toLowerCase();return !a||a===me;}
+  if(r==='pic'&&ptw.status==='pending_pic'){const a=(ptw.assignedPIC?.email||'').toLowerCase();return a?a===me:true;}
+  if(r==='ehs'&&ptw.status==='pending_ehs'){const a=(ptw.assignedEHS?.email||'').toLowerCase();return a?a===me:true;}
+  if(r==='pm'&&ptw.status==='pending_pm'){const a=(ptw.assignedPM?.email||'').toLowerCase();return a?a===me:true;}
   return false;
 }
 function isExpired(ptw){if(!ptw.validityEnd||ptw.status==='closed'||ptw.status==='rejected')return false;return new Date(ptw.validityEnd)<new Date();}
@@ -1074,7 +1074,7 @@ function setFilter(f){filterState=f;renderDashboard();}
 
 function ptwCard(ptw){
   const me=CU.email.toLowerCase(),r=CU.role;
-  const isMyAction=(r==='pic'&&ptw.status==='pending_pic'&&(!ptw.assignedPIC?.email||ptw.assignedPIC.email.toLowerCase()===me))||(r==='ehs'&&ptw.status==='pending_ehs'&&(!ptw.assignedEHS?.email||ptw.assignedEHS.email.toLowerCase()===me))||(r==='pm'&&ptw.status==='pending_pm'&&(!ptw.assignedPM?.email||ptw.assignedPM.email.toLowerCase()===me))||(r==='supervisor'&&ptw.status==='active'&&(ptw.stages?.supervisor?.email||'').toLowerCase()===me)||(r==='admin'&&ptw.status==='active');
+  const isMyAction=(r==='pic'&&ptw.status==='pending_pic'&&(ptw.assignedPIC?.email?ptw.assignedPIC.email.toLowerCase()===me:true))||(r==='ehs'&&ptw.status==='pending_ehs'&&(ptw.assignedEHS?.email?ptw.assignedEHS.email.toLowerCase()===me:true))||(r==='pm'&&ptw.status==='pending_pm'&&(ptw.assignedPM?.email?ptw.assignedPM.email.toLowerCase()===me:true))||(r==='supervisor'&&ptw.status==='active'&&(ptw.stages?.supervisor?.email||'').toLowerCase()===me)||(r==='admin'&&ptw.status==='active');
   const expired=isExpired(ptw),expiringSoon=isExpiringSoon(ptw);
   const borderCol=expired?'#DC2626':expiringSoon?'#D97706':isMyAction?'var(--orange)':'';
   return `<div class="ptw-card" onclick="openPTW('${ptw.id}')" style="${borderCol?`border-color:${borderCol};`:''}">
@@ -1159,10 +1159,24 @@ function renderNewPTW(){
       <div class="form-group"><label>Description of Work *</label><input id="f-desc" type="text" placeholder="Brief description of work *"></div>
     </div>
     <div class="form-group">
-      <label>Assign To — Person In Charge (PIC) *</label>
+      <label>Assign To — Person In Charge (PIC) * <span style="color:var(--danger)">Only this person can verify</span></label>
       <select id="f-tic">
         <option value="">-- Select PIC --</option>
         ${UDB.getAll().filter(u=>u.role==='pic'&&u.active!==false).map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PIC (${u.email})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Assign To — EHS Officer * <span style="color:var(--danger)">Only this person can assess</span></label>
+      <select id="f-ehs">
+        <option value="">-- Select EHS Officer --</option>
+        ${UDB.getAll().filter(u=>u.role==='ehs'&&u.active!==false).map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — EHS (${u.email})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Assign To — Project Manager (PM) * <span style="color:var(--danger)">Only this person can approve</span></label>
+      <select id="f-pm">
+        <option value="">-- Select PM --</option>
+        ${UDB.getAll().filter(u=>u.role==='pm'&&u.active!==false).map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PM (${u.email})</option>`).join('')}
       </select>
     </div>
   </div>
@@ -1351,6 +1365,10 @@ function _submitPTWWithId(ptwId){
   if(!equip){toast('⚠ Equipment / Tools list is required.','error');document.getElementById('f-equip').focus();return;}
   const ticEl=document.getElementById('f-tic');const ticEmail=ticEl?ticEl.value:'';const ticName=ticEl?ticEl.options[ticEl.selectedIndex]?.dataset?.name||'':'';
   if(!ticEmail){toast('Please select a Person In Charge (PIC).','error');return;}
+  const ehsEl=document.getElementById('f-ehs');const ehsEmail=ehsEl?ehsEl.value:'';const ehsName=ehsEl?ehsEl.options[ehsEl.selectedIndex]?.dataset?.name||'':'';
+  if(!ehsEmail){toast('Please select an EHS Officer.','error');return;}
+  const pmEl=document.getElementById('f-pm');const pmEmail=pmEl?pmEl.value:'';const pmName=pmEl?pmEl.options[pmEl.selectedIndex]?.dataset?.name||'':'';
+  if(!pmEmail){toast('Please select a Project Manager (PM).','error');return;}
   if(!newSig){toast('Please sign the declaration first.','error');return;}
   const cls=DB.getChecklists();const checklist={};
   if(cls[type])cls[type].items.forEach(item=>{
@@ -1372,6 +1390,8 @@ function _submitPTWWithId(ptwId){
     contactNumber:document.getElementById('f-contact').value,workDescription:document.getElementById('f-desc').value,
     workers,equipment:document.getElementById('f-equip').value,checklist,
     assignedPIC:{email:ticEmail,name:ticName},
+    assignedEHS:{email:ehsEmail,name:ehsName},
+    assignedPM:{email:pmEmail,name:pmName},
     stages:{supervisor:{name:CU.name.replace(/^(PIC|EHS|PM|SUP|ADMIN)/i,'').trim()||CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:newSig,remarks:'',gps:(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null}},
     createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
   };
@@ -1464,17 +1484,40 @@ function actionPanel(ptw){
   }
   if(r==='pic'&&ptw.status==='pending_pic'){
     const assigned=(ptw.assignedPIC?.email||'').toLowerCase();
-    if(assigned&&assigned!==me)return`<div class="alert alert-info" style="margin-top:18px">ℹ This PTW is assigned to <b>${ptw.assignedPIC?.name||assigned}</b> for PIC verification.</div>`;
+    if(!assigned)return`<div class="form-card" style="border-color:var(--warning);margin-top:18px">
+      <h3 style="color:var(--warning)">⛔ No PIC Assigned</h3>
+      <p style="font-size:13px;color:var(--text-muted)">No PIC was assigned to this PTW.<br>Contact the Supervisor to re-assign.</p>
+    </div>`;
+    if(assigned!==me)return`<div class="form-card" style="border-color:var(--warning);margin-top:18px">
+      <h3 style="color:var(--warning)">⛔ Not Assigned to You</h3>
+      <p style="font-size:13px;color:var(--text-muted)">This PTW is assigned to <b>${ptw.assignedPIC?.name||assigned}</b>.<br>Only that PIC can verify this PTW.</p>
+    </div>`;
     return approvePanel('pic','Verify & Forward to EHS');
   }
   if(r==='ehs'&&ptw.status==='pending_ehs'){
     const assigned=(ptw.assignedEHS?.email||'').toLowerCase();
-    if(assigned&&assigned!==me)return`<div class="alert alert-info" style="margin-top:18px">ℹ This PTW is assigned to <b>${ptw.assignedEHS?.name||assigned}</b> for EHS assessment.</div>`;
+    // STRICT: Only assigned EHS can approve
+    if(!assigned) return `<div class="form-card" style="border-color:var(--warning);margin-top:18px">
+      <h3 style="color:var(--warning)">⛔ No EHS Officer Assigned</h3>
+      <p style="font-size:13px;color:var(--text-muted)">No EHS Officer has been assigned to this PTW.<br>Contact the Supervisor to assign an EHS Officer.</p>
+    </div>`;
+    if(assigned!==me) return `<div class="form-card" style="border-color:var(--warning);margin-top:18px">
+      <h3 style="color:var(--warning)">⛔ Not Assigned to You</h3>
+      <p style="font-size:13px;color:var(--text-muted)">This PTW is assigned to <b>${ptw.assignedEHS?.name||assigned}</b>.<br>Only that person can assess this PTW.</p>
+    </div>`;
     return approvePanel('ehs','Approve & Forward to Project Manager');
   }
   if(r==='pm'&&ptw.status==='pending_pm'){
     const assigned=(ptw.assignedPM?.email||'').toLowerCase();
-    if(assigned&&assigned!==me)return`<div class="alert alert-info" style="margin-top:18px">ℹ This PTW is assigned to <b>${ptw.assignedPM?.name||assigned}</b> for final approval.</div>`;
+    // STRICT: Only assigned PM can approve
+    if(!assigned) return `<div class="form-card" style="border-color:var(--warning);margin-top:18px">
+      <h3 style="color:var(--warning)">⛔ No PM Assigned</h3>
+      <p style="font-size:13px;color:var(--text-muted)">No Project Manager has been assigned to this PTW.<br>Contact the Supervisor to assign a PM.</p>
+    </div>`;
+    if(assigned!==me) return `<div class="form-card" style="border-color:var(--warning);margin-top:18px">
+      <h3 style="color:var(--warning)">⛔ Not Assigned to You</h3>
+      <p style="font-size:13px;color:var(--text-muted)">This PTW is assigned to <b>${ptw.assignedPM?.name||assigned}</b>.<br>Only that PM can give final approval.</p>
+    </div>`;
     return approvePanel('pm','Final Approval — Authorize Work to Proceed');
   }
   if(ptw.status==='active'){
