@@ -237,6 +237,9 @@ input[type=datetime-local]{color-scheme:light}
   .app-content{padding:8px}
   .detail-grid{grid-template-columns:1fr}
 }
+.sort-btn{padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text-muted);font-size:12px;cursor:pointer;font-weight:600;transition:all .2s}
+.sort-btn:hover{border-color:var(--primary);color:var(--primary)}
+.sort-active{background:var(--primary)!important;border-color:var(--primary)!important;color:#fff!important}
 </style>
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -1087,10 +1090,10 @@ function renderDashboard(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:0 0 8px 0;border-bottom:1px solid var(--border)">
       <!-- Sort buttons -->
       <div style="display:flex;gap:4px">
-        <button onclick="setSortOrder('desc')" style="padding:6px 12px;border-radius:8px;border:1.5px solid ${sortState==='desc'?'var(--primary)':'var(--border)'};background:${sortState==='desc'?'var(--primary)':'#fff'};color:${sortState==='desc'?'#fff':'var(--text-muted)'};font-size:12px;cursor:pointer;font-weight:600">
+        <button onclick="setSortOrder('desc')" class="sort-btn ${sortState==='desc'?'sort-active':''}">
           ↓ Newest
         </button>
-        <button onclick="setSortOrder('asc')" style="padding:6px 12px;border-radius:8px;border:1.5px solid ${sortState==='asc'?'var(--primary)':'var(--border)'};background:${sortState==='asc'?'var(--primary)':'#fff'};color:${sortState==='asc'?'#fff':'var(--text-muted)'};font-size:12px;cursor:pointer;font-weight:600">
+        <button onclick="setSortOrder('asc')" class="sort-btn ${sortState==='asc'?'sort-active':''}">
           ↑ Oldest
         </button>
       </div>
@@ -1102,9 +1105,9 @@ function renderDashboard(){
         <label style="font-size:11px;color:var(--text-muted);font-weight:600">To:</label>
         <input type="date" id="date-to" value="${dateTo}" onchange="setDateTo(this.value)"
           style="padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--text)">
-        ${(dateFrom||dateTo)?`<button onclick="clearDateFilter()" style="padding:5px 10px;border-radius:8px;border:1.5px solid var(--danger);background:#FEF2F2;color:var(--danger);font-size:11px;cursor:pointer;font-weight:700">✕ Clear</button>`:''}
+        <button onclick="clearDateFilter()" id="clear-date-btn" style="padding:5px 10px;border-radius:8px;border:1.5px solid var(--danger);background:#FEF2F2;color:var(--danger);font-size:11px;cursor:pointer;font-weight:700;display:${(dateFrom||dateTo)?'inline-block':'none'}">✕ Clear Dates</button>
       </div>
-      <span style="font-size:11px;color:var(--text-muted);margin-left:auto">Showing ${filtered.length} of ${ptws.length}</span>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:auto;font-weight:600">📋 ${filtered.length} / ${ptws.length} PTWs</span>
     </div>
     <div class="filter-bar">
       <button class="filter-btn ${filterState==='mytasks'?'active':''}" onclick="setFilter('mytasks')">⚡ My Tasks ${myTaskCount>0?`(${myTaskCount})`:''}</button>
