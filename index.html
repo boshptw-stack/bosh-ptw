@@ -2488,19 +2488,8 @@ function saveProjectsDirectToSheets(projects,onDone){
 }
 
 function addProject(){
-  const code=document.getElementById('np-code').value.trim().toUpperCase();
-  const name=document.getElementById('np-name').value.trim();
-  const client=document.getElementById('np-client').value.trim();
-  const location=document.getElementById('np-location').value.trim();
-  if(!code){toast('Please enter a project code.','error');return;}
-  if(!name){toast('Please enter a project name.','error');return;}
-  // Check duplicate code
-  const existing=PDB.getAll().find(p=>p.code===code);
-  if(existing){toast('Project code "'+code+'" already exists.','error');return;}
-  PDB.add({name,code,client,location,status:'active'});
-  toast('✅ Project "'+name+'" added!','success');
-      sendAppNotification('PTW APPROVED - Work May Proceed',CP.id+' — '+((CP&&CP.project)||''),{status:'active'});
-  renderAdmin();
+  // Redirect to adminSaveProject which saves to Google Sheets
+  adminSaveProject();
 }
 
 function toggleProjectStatus(id,currentStatus){
@@ -2866,6 +2855,8 @@ function adminSaveProject(){
   if(!code){toast('Project code is required! (e.g. MRT, T5)','error');return;}
   if(code.length<2){toast('Project code must be at least 2 characters!','error');return;}
   
+  // Clear cache so we get fresh data from Sheets
+  PDB._cache=null; PDB._cacheTime=0;
   toast('Saving project to Google Sheets...','info');
   const project={
     id:'P'+Date.now(),
