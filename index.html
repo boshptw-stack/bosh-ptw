@@ -2305,6 +2305,56 @@ function renderAdmin(){
     </div>
 
 
+  <!-- PROJECT MANAGEMENT -->
+  <div class="form-card" style="margin-top:24px" id="admin-projects-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="margin:0">🏗️ Projects Management</h3>
+      <button onclick="showAddProjectForm()" style="background:#1E3A6E;color:#fff;padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px">+ Add Project</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px">Projects are loaded from Google Sheets. Add/edit projects here — available instantly in New PTW form.</p>
+    <div id="projects-list-admin">
+      ${PDB.getAll().length===0?
+        '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">No projects found. Add your first project!</p>':
+        PDB.getAll().map(p=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+          <div>
+            <span style="background:#1E3A6E;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:8px">${p.code||'—'}</span>
+            <span style="font-weight:600;font-size:13px">${p.name}</span>
+            ${p.client?`<span style="color:var(--text-muted);font-size:12px;margin-left:6px">• ${p.client}</span>`:''}
+            ${p.location?`<span style="color:var(--text-muted);font-size:12px;margin-left:4px">📍${p.location}</span>`:''}
+          </div>
+          <button onclick="adminDeleteProject('${p.id}','${p.name}')" style="background:#FEE2E2;color:#DC2626;border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600">Delete</button>
+        </div>`).join('')
+      }
+    </div>
+    <!-- Add Project Form -->
+    <div id="add-project-form" style="display:none;margin-top:14px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px">
+      <h4 style="margin:0 0 12px;color:#1E3A6E">➕ Add New Project</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Project Name *</label>
+          <input id="np-name" type="text" placeholder="e.g. MRT Project" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Project Code * (short)</label>
+          <input id="np-code" type="text" placeholder="e.g. MRT, T5, KEPPEL" maxlength="10" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;text-transform:uppercase">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Client</label>
+          <input id="np-client" type="text" placeholder="e.g. SMRT, CAG" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Location</label>
+          <input id="np-location" type="text" placeholder="e.g. Woodlands" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="adminSaveProject()" style="background:#1E3A6E;color:#fff;padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">💾 Save to Sheets</button>
+        <button onclick="document.getElementById('add-project-form').style.display='none'" style="background:#e2e8f0;color:#475569;padding:9px 14px;border:none;border-radius:8px;cursor:pointer;font-size:13px">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="form-card" style="border:2px solid #DC2626;margin-top:24px;display:none" id="admin-reset-tools">
     <h3 style="color:#DC2626">&#9888;&#65039; Reset / Data Tools</h3>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Super Admin only. Always backup before resetting!</p>
@@ -2796,6 +2846,92 @@ function doSafeReset(){
   s.onerror=function(){toast('Safe reset failed — records NOT cleared','error');};
   s.src=APP_CONFIG.sheetsURL+'?action=safeResetAllData&callback=__safeResetCb&t='+Date.now();
   document.head.appendChild(s);
+}
+
+
+// ================================================================
+// ADMIN PROJECT MANAGEMENT
+// ================================================================
+function showAddProjectForm(){
+  document.getElementById('add-project-form').style.display='block';
+  document.getElementById('np-name').focus();
+}
+
+function adminSaveProject(){
+  const name=document.getElementById('np-name').value.trim();
+  const code=document.getElementById('np-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const client=document.getElementById('np-client').value.trim();
+  const location=document.getElementById('np-location').value.trim();
+  if(!name){toast('Project name is required!','error');return;}
+  if(!code){toast('Project code is required! (e.g. MRT, T5)','error');return;}
+  if(code.length<2){toast('Project code must be at least 2 characters!','error');return;}
+  
+  toast('Saving project to Google Sheets...','info');
+  const project={
+    id:'P'+Date.now(),
+    name:name,
+    code:code,
+    client:client,
+    location:location,
+    status:'active',
+    createdAt:new Date().toISOString()
+  };
+  
+  // Save to Sheets via POST
+  fetch(APP_CONFIG.sheetsURL,{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'data='+encodeURIComponent(JSON.stringify({action:'saveProject',project:project,token:APP_CONFIG.token}))
+  })
+  .then(r=>r.text())
+  .then(text=>{
+    let result;
+    try{result=JSON.parse(text);}catch(e){result={success:true};}
+    if(result.success){
+      // Update local cache
+      const projs=PDB.getAll();
+      projs.push(project);
+      localStorage.setItem('ptw_projects',JSON.stringify(projs));
+      PDB._cache=projs;PDB._cacheTime=Date.now();
+      toast('✅ Project "'+name+'" ('+code+') saved to Google Sheets!','success');
+      // Clear form and refresh
+      document.getElementById('np-name').value='';
+      document.getElementById('np-code').value='';
+      document.getElementById('np-client').value='';
+      document.getElementById('np-location').value='';
+      document.getElementById('add-project-form').style.display='none';
+      setTimeout(()=>renderAdmin(),500);
+    }else{
+      toast('❌ Save failed: '+(result.error||'Unknown error'),'error');
+    }
+  })
+  .catch(e=>toast('❌ Error: '+e.message,'error'));
+}
+
+function adminDeleteProject(id,name){
+  if(!confirm('Delete project "'+name+'"?\nThis will NOT affect existing PTW records.'))return;
+  toast('Deleting...','info');
+  fetch(APP_CONFIG.sheetsURL,{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'data='+encodeURIComponent(JSON.stringify({action:'deleteProject',projectId:id,token:APP_CONFIG.token}))
+  })
+  .then(r=>r.text())
+  .then(text=>{
+    let result;
+    try{result=JSON.parse(text);}catch(e){result={success:true};}
+    if(result.success){
+      // Update local cache
+      const projs=PDB.getAll().filter(p=>p.id!==id);
+      localStorage.setItem('ptw_projects',JSON.stringify(projs));
+      PDB._cache=projs;PDB._cacheTime=Date.now();
+      toast('✅ Project "'+name+'" deleted!','success');
+      setTimeout(()=>renderAdmin(),500);
+    }else{
+      toast('❌ Delete failed: '+(result.error||'Unknown'),'error');
+    }
+  })
+  .catch(e=>toast('❌ Error: '+e.message,'error'));
 }
 
 </script>
