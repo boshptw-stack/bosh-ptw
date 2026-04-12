@@ -694,7 +694,7 @@ const DB = {
     }catch(e){console.warn('Sheets save error:',e);}
   },
   getPTWsLocal(){try{return JSON.parse(localStorage.getItem('ptw_records')||'[]');}catch{return[];}},
-  getPTWs(){return this.getPTWsLocal();},
+  getPTWs(){return this.getPTWsLocal();}, // returns cache; use silentSync for fresh data
   savePTWs(p){
     // Store without signatures to save localStorage space
     const lite=p.map(rec=>{
@@ -714,9 +714,12 @@ const DB = {
     }
   },
   savePTW(ptw){
+    // PRIMARY: Save to Google Sheets immediately
+    this.saveToSheets(ptw);
+    // CACHE: Also update localStorage for instant UI
     const ptws=this.getPTWsLocal();const i=ptws.findIndex(p=>p.id===ptw.id);
     if(i>=0)ptws[i]=ptw;else ptws.unshift(ptw);
-    this.savePTWs(ptws);this.saveToSheets(ptw);
+    this.savePTWs(ptws);
   },
   getNextId(type){
     // Per-type running number: GEN-01, GEN-02, HW-01, HW-02...
@@ -1002,11 +1005,29 @@ function silentSync(){
   try{
     const script=document.createElement('script');
     window.__silentSync=function(data){
-      if(Array.isArray(data)&&data.length>0){
-        const local=DB.getPTWsLocal();let hasChanges=false;
-        const merged=data.map(remote=>{const loc=local.find(l=>l.id===remote.id);if(loc){if(loc.stages)Object.keys(loc.stages).forEach(k=>{if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;}});if(loc.status!==remote.status)hasChanges=true;}else hasChanges=true;return remote;});
-        local.forEach(loc=>{if(!merged.find(m=>m.id===loc.id))merged.push(loc);});
-        DB.savePTWs(merged);if(hasChanges){renderDashboard();toast('🔄 New updates received','info');}
+      if(Array.isArray(data)){
+        // Validate records have proper IDs
+        const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-PTW-'));
+        if(valid.length>0){
+          // Preserve local signatures
+          const local=DB.getPTWsLocal();
+          const merged=valid.map(remote=>{
+            const loc=local.find(l=>l.id===remote.id);
+            if(loc&&loc.stages)Object.keys(loc.stages).forEach(k=>{
+              if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){
+                if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;
+              }
+            });
+            return remote;
+          });
+          // Google Sheets is the truth — overwrite localStorage
+          DB.savePTWs(merged);
+          renderDashboard();
+        } else if(valid.length===0&&data.length===0){
+          // Sheets is empty — clear localStorage too
+          DB.savePTWs([]);
+          renderDashboard();
+        }
       }
       try{document.head.removeChild(script);}catch(e){}delete window.__silentSync;
     };
@@ -1067,6 +1088,7 @@ function isExpiringSoon(ptw){if(!ptw.validityEnd||ptw.status==='closed'||ptw.sta
 
 function renderDashboard(){
   renderHeader('app-header-dash');
+  // Always load fresh from Sheets (not localStorage)
   let ptws=DB.getPTWs();
   const myTasks=ptws.filter(p=>isMyTask(p)&&(p.status.startsWith('pending')||p.status==='active'||p.status==='draft'));
   const myTaskCount=myTasks.length;
@@ -2273,7 +2295,7 @@ function renderAdmin(){
   <div class="form-card">
     <h3>⚠ Reset / Data Tools</h3>
     <div style="display:flex;gap:9px;flex-wrap:wrap">
-      <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear all PTW records?')){localStorage.removeItem('ptw_records');toast('Records cleared.','warning');renderAdmin()}">🗑 Clear PTW Records</button>
+      <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear all PTW records?')){localStorage.removeItem('ptw_records');localStorage.removeItem('ptw_records_cache');if(DB&&DB.savePTWs)DB.savePTWs([]);toast('✅ Records cleared from local. Use Backup+Clear to also clear Google Sheets.','warning');renderAdmin();renderDashboard();}"style="background:#DC2626;color:#fff;border:none">🗑 Clear Local Records</button>
       <button class="btn btn-outline btn-sm" onclick="if(confirm('Reset users to default?')){localStorage.removeItem('ptw_users_gs');toast('Users reset.','warning');renderAdmin()}">↺ Reset Users</button>
     </div>
 
@@ -2755,10 +2777,13 @@ function doSafeReset(){
     try{document.head.removeChild(s);}catch(e){}
     delete window.__safeResetCb;
     if(r&&r.success){
+      // Clear ALL PTW records from localStorage
       localStorage.removeItem('ptw_records');
       localStorage.removeItem('ptw_records_cache');
-      toast('Done! Backup emailed. All records cleared. Counter reset to 01.','success');
-      setTimeout(function(){renderDashboard();},2000);
+      // Force DB to return empty
+      if(DB && DB.savePTWs) DB.savePTWs([]);
+      toast('Done! Backup emailed. All records cleared. Counter reset.','success');
+      setTimeout(function(){renderDashboard();},500);
     }else{
       toast('Failed: '+(r&&r.error||'Unknown error. Records NOT cleared.'),'error');
     }
