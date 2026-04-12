@@ -2276,6 +2276,33 @@ function renderAdmin(){
       <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear all PTW records?')){localStorage.removeItem('ptw_records');toast('Records cleared.','warning');renderAdmin()}">🗑 Clear PTW Records</button>
       <button class="btn btn-outline btn-sm" onclick="if(confirm('Reset users to default?')){localStorage.removeItem('ptw_users_gs');toast('Users reset.','warning');renderAdmin()}">↺ Reset Users</button>
     </div>
+
+
+  <!-- SUPER ADMIN RESET/BACKUP TOOLS -->
+  \${CU.role==='admin'?\`
+  <div class="form-card" style="border:2px solid #DC2626;margin-top:24px">
+    <h3 style="color:#DC2626">&#9888;&#65039; Reset / Data Tools</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Super Admin only. Always backup before resetting!</p>
+
+    <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:16px;margin-bottom:12px">
+      <h4 style="color:#15803D;margin:0 0 8px">&#128190; Backup Data to Email</h4>
+      <p style="font-size:12px;color:#166534;margin:0 0 10px">Saves ALL PTW records to Google Drive and emails download link to you.</p>
+      <button onclick="doBackup()" style="background:#16A34A;color:#fff;padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">&#128231; Backup Now</button>
+    </div>
+
+    <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:16px;margin-bottom:12px">
+      <h4 style="color:#D97706;margin:0 0 8px">&#128290; Reset PTW Counter to 01</h4>
+      <p style="font-size:12px;color:#92400E;margin:0 0 10px">Next PTW will start from 01. Does NOT delete records.</p>
+      <button onclick="doResetCounter()" style="background:#D97706;color:#fff;padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">&#128290; Reset Counter</button>
+    </div>
+
+    <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:16px">
+      <h4 style="color:#DC2626;margin:0 0 8px">&#128465;&#65039; Clear All PTW Records</h4>
+      <p style="font-size:12px;color:#991B1B;margin:0 0 10px"><b>DANGER:</b> Clears ALL records from Google Sheets. Backup is sent to email automatically BEFORE clearing.</p>
+      <button onclick="doSafeReset()" style="background:#DC2626;color:#fff;padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">&#9888;&#65039; Backup + Clear All</button>
+    </div>
+  </div>
+  \`:''}
   </div>`;
 }
 
@@ -2681,6 +2708,68 @@ window.onload=()=>{
   // Note: PTW records sync happens on dashboard load via autoSync
   // Checklists stored in Sheets via Admin panel
 };
+
+// ================================================================
+// SUPER ADMIN — BACKUP & RESET FUNCTIONS
+// ================================================================
+function doBackup(){
+  if(!confirm('Send backup of all PTW data to your email?'))return;
+  toast('Creating backup... please wait','info');
+  var s=document.createElement('script');
+  window.__backupCb=function(r){
+    try{document.head.removeChild(s);}catch(e){}
+    delete window.__backupCb;
+    if(r&&r.success){
+      toast('Backup done! Email sent with '+r.records+' records','success');
+    }else{
+      toast('Backup failed: '+(r&&r.error||'Unknown error'),'error');
+    }
+  };
+  s.onerror=function(){toast('Backup failed — check connection','error');};
+  s.src=APP_CONFIG.sheetsURL+'?action=backupAndSendEmail&callback=__backupCb&t='+Date.now();
+  document.head.appendChild(s);
+}
+
+function doResetCounter(){
+  if(!confirm('Reset PTW counter to 01?\nNext PTW = BOSH-PTW-GEN-01\nThis does NOT delete any records.'))return;
+  toast('Resetting counter...','info');
+  var s=document.createElement('script');
+  window.__resetCounterCb=function(r){
+    try{document.head.removeChild(s);}catch(e){}
+    delete window.__resetCounterCb;
+    if(r&&r.success){
+      toast('Counter reset! Next PTW starts from 01','success');
+    }else{
+      toast('Reset failed: '+(r&&r.error||'Unknown'),'error');
+    }
+  };
+  s.onerror=function(){toast('Reset failed','error');};
+  s.src=APP_CONFIG.sheetsURL+'?action=resetAllCounters&callback=__resetCounterCb&t='+Date.now();
+  document.head.appendChild(s);
+}
+
+function doSafeReset(){
+  if(!confirm('DANGER!\n\nThis will:\n1. Backup ALL data to your email\n2. Clear ALL PTW records from Google Sheets\n3. Reset counter to 01\n\nClick OK to continue.'))return;
+  if(!confirm('Are you 100% sure? This CANNOT be undone!\n\nBackup will be sent to your email first.'))return;
+  toast('Creating backup then clearing all data... please wait 30 seconds','warning');
+  var s=document.createElement('script');
+  window.__safeResetCb=function(r){
+    try{document.head.removeChild(s);}catch(e){}
+    delete window.__safeResetCb;
+    if(r&&r.success){
+      localStorage.removeItem('ptw_records');
+      localStorage.removeItem('ptw_records_cache');
+      toast('Done! Backup emailed. All records cleared. Counter reset to 01.','success');
+      setTimeout(function(){renderDashboard();},2000);
+    }else{
+      toast('Failed: '+(r&&r.error||'Unknown error. Records NOT cleared.'),'error');
+    }
+  };
+  s.onerror=function(){toast('Safe reset failed — records NOT cleared','error');};
+  s.src=APP_CONFIG.sheetsURL+'?action=safeResetAllData&callback=__safeResetCb&t='+Date.now();
+  document.head.appendChild(s);
+}
+
 </script>
 </body>
 </html>
