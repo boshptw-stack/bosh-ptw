@@ -743,6 +743,9 @@ let CU=null,CP=null;
 let sigCtx,sigCanvas,sigDrawing=false,sigLX=0,sigLY=0,sigCallback=null;
 let pendingStageKey=null,newSig=null,approveSig=null,closeSig2=null;
 let filterState='mytasks';
+let sortState='desc';
+let dateFrom='';
+let dateTo='';
 let CU_GPS=null;
 let _autoSyncTimer=null;
 
@@ -1017,11 +1020,29 @@ function syncFromSheets(){
   const script=document.createElement('script');
   window.__ptwSync=function(data){
     if(Array.isArray(data)&&data.length>0){
+      // Safety check: validate records have proper IDs
+      const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-PTW-'));
+      if(valid.length===0){toast('⚠️ Sync skipped — invalid data received. Your records are safe.','warning');return;}
       const local=DB.getPTWsLocal();
-      const merged=data.map(remote=>{const loc=local.find(l=>l.id===remote.id);if(loc&&loc.stages)Object.keys(loc.stages).forEach(k=>{if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;}});return remote;});
+      const merged=valid.map(remote=>{
+        const loc=local.find(l=>l.id===remote.id);
+        if(loc&&loc.stages)Object.keys(loc.stages).forEach(k=>{
+          if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){
+            if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;
+          }
+        });
+        return remote;
+      });
+      // Keep local records that are not in Sheets yet
       local.forEach(loc=>{if(!merged.find(m=>m.id===loc.id))merged.push(loc);});
-      DB.savePTWs(merged);toast(`✅ Synced ${data.length} PTW(s)!`,'success');renderDashboard();
-    }else toast('No records in Sheets.','warning');
+      DB.savePTWs(merged);
+      toast('✅ Synced '+merged.length+' PTW(s) successfully!','success');
+      renderDashboard();
+    }else if(Array.isArray(data)&&data.length===0){
+      toast('⚠️ Google Sheets is empty. Your local records are kept safe.','warning');
+    }else{
+      toast('⚠️ Sync failed — unexpected data. Your records are safe.','warning');
+    }
     document.head.removeChild(script);delete window.__ptwSync;
   };
   script.onerror=()=>toast('❌ Sync failed. Check connection.','error');
