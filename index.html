@@ -909,6 +909,17 @@ function login(){
   CU={role:user.role,name:user.name,email:user.email,company:user.company||APP_CONFIG.company,uid:user.id};
   SESSION.start();
   toast('Welcome, '+user.name+'! 👷','success');
+  // Tell app user logged in — so app can save push token
+  try{
+    if(window.ReactNativeWebView){
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type:'USER_LOGGED_IN',
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }));
+    }
+  }catch(e){}
   if(user.role==='supervisor'||user.role==='ehs')captureGPS(gps=>{CU_GPS=gps;});
   showPage('dashboard');
 }
@@ -1041,6 +1052,21 @@ function renderDashboard(){
   else if(filterState==='pending')filtered=ptws.filter(p=>p.status.startsWith('pending'));
   else if(filterState==='expired')filtered=ptws.filter(p=>isExpired(p));
   else if(filterState!=='all')filtered=ptws.filter(p=>p.status===filterState);
+  // Date range filter
+  if(dateFrom){
+    const from=new Date(dateFrom);from.setHours(0,0,0,0);
+    filtered=filtered.filter(p=>{const d=new Date(p.createdAt||p.validityStart||0);return d>=from;});
+  }
+  if(dateTo){
+    const to=new Date(dateTo);to.setHours(23,59,59,999);
+    filtered=filtered.filter(p=>{const d=new Date(p.createdAt||p.validityStart||0);return d<=to;});
+  }
+  // Sort: asc=oldest first, desc=newest first
+  filtered=filtered.slice().sort((a,b)=>{
+    const da=new Date(a.createdAt||a.validityStart||0);
+    const db=new Date(b.createdAt||b.validityStart||0);
+    return sortState==='asc'?da-db:db-da;
+  });
   const canCreate=(CU.role==='supervisor'||CU.role==='admin');
   document.getElementById('dashboard-content').innerHTML=`
   <div class="page-title">
@@ -1057,6 +1083,29 @@ function renderDashboard(){
   </div>
   <div class="section-header">
     <h3>${filterState==='mytasks'?`⚡ My Tasks (${filtered.length})`:filterState==='expired'?`⏰ Expired (${filtered.length})`:`Permit Records (${filtered.length})`}</h3>
+    <!-- Sort & Date Filter Controls -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:0 0 8px 0;border-bottom:1px solid var(--border)">
+      <!-- Sort buttons -->
+      <div style="display:flex;gap:4px">
+        <button onclick="setSortOrder('desc')" style="padding:6px 12px;border-radius:8px;border:1.5px solid ${sortState==='desc'?'var(--primary)':'var(--border)'};background:${sortState==='desc'?'var(--primary)':'#fff'};color:${sortState==='desc'?'#fff':'var(--text-muted)'};font-size:12px;cursor:pointer;font-weight:600">
+          ↓ Newest
+        </button>
+        <button onclick="setSortOrder('asc')" style="padding:6px 12px;border-radius:8px;border:1.5px solid ${sortState==='asc'?'var(--primary)':'var(--border)'};background:${sortState==='asc'?'var(--primary)':'#fff'};color:${sortState==='asc'?'#fff':'var(--text-muted)'};font-size:12px;cursor:pointer;font-weight:600">
+          ↑ Oldest
+        </button>
+      </div>
+      <!-- Date filters -->
+      <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:11px;color:var(--text-muted);font-weight:600">From:</label>
+        <input type="date" id="date-from" value="${dateFrom}" onchange="setDateFrom(this.value)" 
+          style="padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--text)">
+        <label style="font-size:11px;color:var(--text-muted);font-weight:600">To:</label>
+        <input type="date" id="date-to" value="${dateTo}" onchange="setDateTo(this.value)"
+          style="padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--text)">
+        ${(dateFrom||dateTo)?`<button onclick="clearDateFilter()" style="padding:5px 10px;border-radius:8px;border:1.5px solid var(--danger);background:#FEF2F2;color:var(--danger);font-size:11px;cursor:pointer;font-weight:700">✕ Clear</button>`:''}
+      </div>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:auto">Showing ${filtered.length} of ${ptws.length}</span>
+    </div>
     <div class="filter-bar">
       <button class="filter-btn ${filterState==='mytasks'?'active':''}" onclick="setFilter('mytasks')">⚡ My Tasks ${myTaskCount>0?`(${myTaskCount})`:''}</button>
       <button class="filter-btn ${filterState==='all'?'active':''}" onclick="setFilter('all')">All</button>
@@ -1071,6 +1120,16 @@ function renderDashboard(){
   </div>`;
 }
 function setFilter(f){filterState=f;renderDashboard();}
+function setSortOrder(order){sortState=order;renderDashboard();}
+function setDateFrom(val){dateFrom=val;renderDashboard();}
+function setDateTo(val){dateTo=val;renderDashboard();}
+function clearDateFilter(){
+  dateFrom='';dateTo='';
+  const df=document.getElementById('date-from');
+  const dt=document.getElementById('date-to');
+  if(df)df.value='';if(dt)dt.value='';
+  renderDashboard();
+}
 
 function ptwCard(ptw){
   const me=CU.email.toLowerCase(),r=CU.role;
@@ -1295,7 +1354,7 @@ function updateChecklist(){
         style="display:none;border:1px solid #E2E8F0;border-radius:6px;padding:5px 8px;font-size:12px;width:140px"
         oninput="saveOthersText('${item.id}',this.value)"></td>
     </tr>`).join('');
-  setTimeout(()=>{const c=document.getElementById('cl-card');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});},100);
+  // No auto-scroll — user stays at top of form
 }
 function addW(){const l=document.getElementById('workers-list');const r=document.createElement('div');r.className='worker-row';r.innerHTML=`<input type="text" placeholder="Worker Name" class="w-name"><input type="text" placeholder="Trade / Designation" class="w-trade"><button class="remove-btn" onclick="removeW(this)">×</button>`;l.appendChild(r);}
 function removeW(btn){const rows=document.querySelectorAll('.worker-row');if(rows.length>1)btn.parentElement.remove();}
