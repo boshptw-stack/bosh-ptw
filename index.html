@@ -2278,32 +2278,30 @@ function renderAdmin(){
     </div>
 
 
-  <!-- SUPER ADMIN RESET/BACKUP TOOLS -->
-  \${CU.role==='admin'?\`
-  <div class="form-card" style="border:2px solid #DC2626;margin-top:24px">
+  <div class="form-card" style="border:2px solid #DC2626;margin-top:24px;display:none" id="admin-reset-tools">
     <h3 style="color:#DC2626">&#9888;&#65039; Reset / Data Tools</h3>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Super Admin only. Always backup before resetting!</p>
-
     <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:16px;margin-bottom:12px">
       <h4 style="color:#15803D;margin:0 0 8px">&#128190; Backup Data to Email</h4>
       <p style="font-size:12px;color:#166534;margin:0 0 10px">Saves ALL PTW records to Google Drive and emails download link to you.</p>
       <button onclick="doBackup()" style="background:#16A34A;color:#fff;padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">&#128231; Backup Now</button>
     </div>
-
     <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:16px;margin-bottom:12px">
       <h4 style="color:#D97706;margin:0 0 8px">&#128290; Reset PTW Counter to 01</h4>
-      <p style="font-size:12px;color:#92400E;margin:0 0 10px">Next PTW will start from 01. Does NOT delete records.</p>
+      <p style="font-size:12px;color:#92400E;margin:0 0 10px">Next PTW will start from 01. Does NOT delete any records.</p>
       <button onclick="doResetCounter()" style="background:#D97706;color:#fff;padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">&#128290; Reset Counter</button>
     </div>
-
     <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:16px">
       <h4 style="color:#DC2626;margin:0 0 8px">&#128465;&#65039; Clear All PTW Records</h4>
-      <p style="font-size:12px;color:#991B1B;margin:0 0 10px"><b>DANGER:</b> Clears ALL records from Google Sheets. Backup is sent to email automatically BEFORE clearing.</p>
+      <p style="font-size:12px;color:#991B1B;margin:0 0 10px"><b>DANGER:</b> Clears ALL records from Google Sheets. Backup sent to your email BEFORE clearing.</p>
       <button onclick="doSafeReset()" style="background:#DC2626;color:#fff;padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">&#9888;&#65039; Backup + Clear All</button>
     </div>
-  </div>
-  \`:''}
   </div>`;
+  // Show reset tools only for Super Admin
+  setTimeout(function(){
+    var el=document.getElementById('admin-reset-tools');
+    if(el&&CU&&CU.role==='admin')el.style.display='block';
+  },100);
 }
 
 function renderProjectManagement(){
