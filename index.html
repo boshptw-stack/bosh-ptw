@@ -1251,7 +1251,7 @@ function renderNewPTW(){
     <div class="form-group"><label>Select Project *</label>
       <select id="f-project-id" onchange="onProjectSelect()">
         <option value="">-- Select Project --</option>
-        ${myProjects.map(p=>`<option value="${p.id}" data-name="${p.name}" data-loc="${p.location||''}">${p.code} — ${p.name}</option>`).join('')}
+        ${myProjects.map(p=>`<option value="${p.id}" data-name="${p.name}" data-code="${p.code||p.name}" data-loc="${p.location||''}">${p.code} — ${p.name}</option>`).join('')}
         <option value="__custom__">+ Enter custom project name</option>
       </select>
     </div>
@@ -1429,21 +1429,26 @@ function submitPTW(){
   }
 }
 function _getPTWNumber(type){
+  // Get project code from form
+  // Get project code from the project select dropdown
+  const projEl=document.getElementById('f-project-id');
+  const projCode=projEl&&projEl.selectedIndex>0?
+    (projEl.options[projEl.selectedIndex]?.dataset?.code||'PTW'):'PTW';
   const s=document.createElement('script');
   window.__ptwNumCb=function(data){
     try{document.head.removeChild(s);}catch(e){}
     delete window.__ptwNumCb;
     if(data&&data.success&&data.id){
-      // Update local counter to match server
-      const storeKey='ptw_counter_'+type;
+      const proj=projCode.toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0,10);
+      const storeKey='ptw_counter_'+proj+'_'+type;
       localStorage.setItem(storeKey,String(data.number));
       _submitPTWWithId(data.id);
     } else {
-      _submitPTWWithId(DB.getNextId(type));
+      _submitPTWWithId(DB.getNextId(type,projCode));
     }
   };
-  s.onerror=()=>{try{document.head.removeChild(s);}catch(e){}delete window.__ptwNumCb;_submitPTWWithId(DB.getNextId(type));};
-  s.src=APP_CONFIG.sheetsURL+'?action=getNextNumber&type='+type+'&callback=__ptwNumCb&t='+Date.now();
+  s.onerror=()=>{try{document.head.removeChild(s);}catch(e){}delete window.__ptwNumCb;_submitPTWWithId(DB.getNextId(type,projCode));};
+  s.src=APP_CONFIG.sheetsURL+'?action=getNextNumber&type='+type+'&project='+encodeURIComponent(projCode)+'&callback=__ptwNumCb&t='+Date.now();
   document.head.appendChild(s);
 }
 function _submitPTWWithId(ptwId){
