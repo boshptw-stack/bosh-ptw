@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <meta name="theme-color" content="#1E3A6E">
+
+  <!-- SEO Meta Tags -->
+  <title>Bosh PTW — Digital Permit To Work System | Bosh Engineering Singapore</title>
+  <meta name="description" content="Bosh Engineering digital Permit To Work (PTW) system. MOM WSH Act compliant safety management for construction sites in Singapore.">
+  <meta name="keywords" content="Permit to Work, PTW system, construction safety, Singapore, MOM WSH, digital PTW">
+  <meta name="author" content="Bosh Engineering Pte. Ltd.">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph (for sharing) -->
+  <meta property="og:title" content="Bosh PTW System">
+  <meta property="og:description" content="Digital Permit To Work system for Bosh Engineering Pte. Ltd.">
+  <meta property="og:url" content="https://boshptw.com">
+  <meta property="og:type" content="website">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://boshptw.com">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -248,6 +264,22 @@ input[type=datetime-local]{color-scheme:light}
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Bosh PTW">
   <meta name="theme-color" content="#1E3A6E">
+
+  <!-- SEO Meta Tags -->
+  <title>Bosh PTW — Digital Permit To Work System | Bosh Engineering Singapore</title>
+  <meta name="description" content="Bosh Engineering digital Permit To Work (PTW) system. MOM WSH Act compliant safety management for construction sites in Singapore.">
+  <meta name="keywords" content="Permit to Work, PTW system, construction safety, Singapore, MOM WSH, digital PTW">
+  <meta name="author" content="Bosh Engineering Pte. Ltd.">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph (for sharing) -->
+  <meta property="og:title" content="Bosh PTW System">
+  <meta property="og:description" content="Digital Permit To Work system for Bosh Engineering Pte. Ltd.">
+  <meta property="og:url" content="https://boshptw.com">
+  <meta property="og:type" content="website">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://boshptw.com">
 </head>
 <body>
 
@@ -1007,7 +1039,7 @@ function silentSync(){
     window.__silentSync=function(data){
       if(Array.isArray(data)){
         // Validate records have proper IDs
-        const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-PTW-'));
+        const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-'));
         if(valid.length>0){
           // Preserve local signatures
           const local=DB.getPTWsLocal();
@@ -1042,7 +1074,7 @@ function syncFromSheets(){
   window.__ptwSync=function(data){
     if(Array.isArray(data)&&data.length>0){
       // Safety check: validate records have proper IDs
-      const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-PTW-'));
+      const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-'));
       if(valid.length===0){toast('⚠️ Sync skipped — invalid data received. Your records are safe.','warning');return;}
       const local=DB.getPTWsLocal();
       const merged=valid.map(remote=>{
