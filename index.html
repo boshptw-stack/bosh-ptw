@@ -1546,7 +1546,7 @@ function _submitPTWWithId(ptwId){
     assignedPIC:{email:ticEmail,name:ticName},
     assignedEHS:{email:ehsEmail,name:ehsName},
     assignedPM:{email:pmEmail,name:pmName},
-    stages:{supervisor:{name:CU.name.replace(/^(PIC|EHS|PM|SUP|ADMIN)/i,'').trim()||CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:newSig,remarks:'',gps:(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null}},
+    stages:{supervisor:{name:CU.name.replace(/^(PIC|EHS|PM|SUP|ADMIN)/i,'').trim()||CU.name,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:newSig,remarks:'',gps:(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy,locationName:CU_GPS.locationName||null}:null}},
     createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
   };
   DB.savePTW(ptw);newSig=null;
@@ -1803,7 +1803,7 @@ function doApprove(stageKey){
   const ptw=DB.getPTWs().find(p=>p.id===CP.id);
   const remarks=document.getElementById('approve-remarks')?.value||'';
   const nextStatus={pic:'pending_ehs',ehs:'pending_pm',pm:'active'};
-  const stageGPS=(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy}:null;
+  const stageGPS=(CU_GPS&&CU_GPS.lat)?{lat:CU_GPS.lat,lng:CU_GPS.lng,accuracy:CU_GPS.accuracy,locationName:CU_GPS.locationName||null}:null;
   // Ensure clean name (no role prefix)
   const cleanName=CU.name.replace(/^(PIC|EHS|PM|SUP|ADMIN)/i,'').trim()||CU.name;
   ptw.stages[stageKey]={name:cleanName,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:approveSig,remarks,gps:stageGPS};
