@@ -1972,7 +1972,7 @@ function autoSaveClosedPDF(ptw){
       doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+46,y+8);
       doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+46,y+13);doc.text(s.company||'',M+46,y+17.5);
       if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});
-      if(gpsOk){doc.setFillColor(232,248,246);doc.rect(M,y+bH-8,CW,8,'F');doc.setDrawColor(13,148,136);doc.line(M,y+bH-8,M+CW,y+bH-8);doc.setTextColor(13,148,136);doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.text('GPS: Lat: '+String(s.gps.lat)+'   Lng: '+String(s.gps.lng)+'   Accuracy: +-'+String(s.gps.accuracy)+'m',M+3,y+bH-3);}
+      if(gpsOk){doc.setFillColor(232,248,246);doc.rect(M,y+bH-8,CW,8,'F');doc.setDrawColor(13,148,136);doc.line(M,y+bH-8,M+CW,y+bH-8);doc.setTextColor(13,148,136);doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.text((s.gps.locationName||('Lat: '+String(s.gps.lat)+' Lng: '+String(s.gps.lng))),M+3,y+bH-3);}
       y+=bH+3;};
     secT(1,'Permit Application — Supervisor');sigR(ptwForPDF.stages?.supervisor);
     secT(2,'Verification by Person In Charge');sigR(ptwForPDF.stages?.pic);
@@ -2131,13 +2131,13 @@ function autoSavePDFtoDrive(ptw){
     if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});
     if(s.remarks&&s.remarks.trim()){doc.setTextColor(...orange);doc.setFontSize(7);doc.text('Remarks: '+s.remarks,M+46,y+21);}
     // GPS row — always render, show "Not Available" if missing
-    const gpsText=hasGPS?('Lat: '+String(s.gps.lat)+'   Lng: '+String(s.gps.lng)+'   Accuracy: +-'+String(s.gps.accuracy)+'m'):'GPS: Not Available';
+    const gpsText=hasGPS?((s.gps.locationName||('Lat: '+String(s.gps.lat)+' Lng: '+String(s.gps.lng)))):'Location: Not Available';
     const gpsCol=hasGPS?[13,148,136]:[180,90,90];
     doc.setFillColor(hasGPS?232:250,hasGPS?248:235,hasGPS?246:235);
     doc.rect(M,y+boxH-8,CW,8,'F');
     doc.setDrawColor(...gpsCol);doc.line(M,y+boxH-8,M+CW,y+boxH-8);
     doc.setTextColor(...gpsCol);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
-    doc.text('GPS Location: '+gpsText,M+3,y+boxH-3);
+    doc.text('📍 Location: '+gpsText,M+3,y+boxH-3);
     y+=boxH+3;};
     // All stages
     // DECLARATION TEXT
@@ -2252,7 +2252,7 @@ function genPDF(){
     doc.setTextColor(...navy);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(s.name||'',M+48,y+8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gray);doc.text(s.email||'',M+48,y+13);doc.text(s.company||'',M+48,y+17.5);if(s.timestamp)doc.text(fmt(s.timestamp),W-M-2,y+8,{align:'right'});
     // GPS row — always shown
     const gpsOk2=!!(s.gps&&s.gps.lat);
-    const gpsT2=gpsOk2?('Lat: '+String(s.gps.lat)+'   Lng: '+String(s.gps.lng)+'   Acc: +-'+String(s.gps.accuracy)+'m'):'GPS: Not Available';
+    const gpsT2=gpsOk2?((s.gps.locationName||('Lat: '+String(s.gps.lat)+' Lng: '+String(s.gps.lng)))):'Location: Not Available';
     const gpsC2=gpsOk2?[13,148,136]:[180,90,90];
     doc.setFillColor(gpsOk2?232:250,gpsOk2?248:235,gpsOk2?246:235);doc.rect(M,y+19,CW,7,'F');
     doc.setDrawColor(...gpsC2);doc.line(M,y+19,M+CW,y+19);
