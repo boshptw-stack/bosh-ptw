@@ -1593,7 +1593,7 @@ function renderViewPTW(){
   <div style="margin-top:18px">
     ${stageBlock(ptw,'supervisor','1','Permit Application — Supervisor')}
     ${stageBlock(ptw,'pic','2','Verification by Person In Charge')}
-    ${stageBlock(ptw,'ehs','3','Assessment by EHS')}
+    ${stageBlock(ptw,'ehs','3','Assessment by EHS Safety Coordinator')}
     ${stageBlock(ptw,'pm','4','Inspection by Project Manager')}
     ${ptw.status==='closed'||ptw.stages?.close?stageBlock(ptw,'close','5','Close PTW'):''}
   </div>
@@ -1976,7 +1976,7 @@ function autoSaveClosedPDF(ptw){
       y+=bH+3;};
     secT(1,'Permit Application — Supervisor');sigR(ptwForPDF.stages?.supervisor);
     secT(2,'Verification by Person In Charge');sigR(ptwForPDF.stages?.pic);
-    secT(3,'Assessment by EHS');sigR(ptwForPDF.stages?.ehs);
+    secT(3,'Assessment by EHS Safety Coordinator');sigR(ptwForPDF.stages?.ehs);
     secT(4,'Final Approval by Project Manager');sigR(ptwForPDF.stages?.pm);
     secT(5,'PTW Closed');sigR(ptwForPDF.stages?.close);
     const tp=doc.internal.getNumberOfPages();for(let i=1;i<=tp;i++){doc.setPage(i);doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(ptw.id+' [CLOSED]',M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});doc.text('PAGE '+i+' OF '+tp,W-M,293,{align:'right'});}
@@ -2153,7 +2153,7 @@ function autoSavePDFtoDrive(ptw){
     y+=22;
     secTitle(1,'Permit Application — Supervisor');sigRow(ptwForPDF.stages?.supervisor);
     secTitle(2,'Verification by Person In Charge');sigRow(ptwForPDF.stages?.pic);
-    secTitle(3,'Assessment by EHS');sigRow(ptwForPDF.stages?.ehs);
+    secTitle(3,'Assessment by EHS Safety Coordinator');sigRow(ptwForPDF.stages?.ehs);
     secTitle(4,'Final Approval by Project Manager');sigRow(ptwForPDF.stages?.pm);
     if(ptwForPDF.stages?.close){secTitle(5,'PTW Closed');sigRow(ptwForPDF.stages.close);}
     // Page footer
@@ -2270,7 +2270,7 @@ function genPDF(){
   const declLns=doc.splitTextToSize(declTxt,CW-8);doc.text(declLns,M+4,y+10);y+=22;
   secTitle(1,'Permit Application - Supervisor');sigRow(ptw.stages&&ptw.stages.supervisor);
   secTitle(2,'Verification by Person In Charge');sigRow(ptw.stages&&ptw.stages.pic);
-  secTitle(3,'Assessment by EHS');sigRow(ptw.stages&&ptw.stages.ehs);
+  secTitle(3,'Assessment by EHS Safety Coordinator');sigRow(ptw.stages&&ptw.stages.ehs);
   secTitle(4,'Inspection by Project Manager');sigRow(ptw.stages&&ptw.stages.pm);
   if(ptw.stages&&ptw.stages.close){secTitle(5,'Close PTW');sigRow(ptw.stages.close);}
   const tp=doc.internal.getNumberOfPages();for(let i=1;i<=tp;i++){doc.setPage(i);doc.setFillColor(...navy);doc.rect(0,287,W,10,'F');doc.setTextColor(...white);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(ptw.id,M,293);doc.text('Bosh Engineering PTW System',W/2,293,{align:'center'});doc.text('PAGE '+i+' OF '+tp,W-M,293,{align:'right'});}
