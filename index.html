@@ -746,9 +746,9 @@ const DB = {
     }
   },
   savePTW(ptw){
-    // PRIMARY: Save to Google Sheets immediately
+    // Save to Google Sheets (primary)
     this.saveToSheets(ptw);
-    // CACHE: Also update localStorage for instant UI
+    // Update localStorage cache
     const ptws=this.getPTWsLocal();const i=ptws.findIndex(p=>p.id===ptw.id);
     if(i>=0)ptws[i]=ptw;else ptws.unshift(ptw);
     this.savePTWs(ptws);
@@ -890,19 +890,41 @@ function captureGPS(callback){
   if(!navigator.geolocation){toast('GPS not supported.','warning');if(callback)callback(null);return;}
   toast('📍 Getting GPS location...','info');
   navigator.geolocation.getCurrentPosition(
-    pos=>{CU_GPS={lat:pos.coords.latitude.toFixed(6),lng:pos.coords.longitude.toFixed(6),accuracy:Math.round(pos.coords.accuracy),timestamp:new Date().toISOString()};
-      toast(`📍 GPS: ${CU_GPS.lat}, ${CU_GPS.lng} (±${CU_GPS.accuracy}m)`,'success');if(callback)callback(CU_GPS);},
+    pos=>{
+      const lat=pos.coords.latitude.toFixed(6);
+      const lng=pos.coords.longitude.toFixed(6);
+      const acc=Math.round(pos.coords.accuracy);
+      CU_GPS={lat:lat,lng:lng,accuracy:acc,timestamp:new Date().toISOString()};
+      // Reverse geocode to get location name
+      fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=16&addressdetails=1',{
+        headers:{'Accept-Language':'en'}
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        const a=data.address||{};
+        const locationName=
+          (a.building||a.amenity||a.road||'')+
+          (a.suburb||a.neighbourhood?', '+(a.suburb||a.neighbourhood):'')+
+          (a.city||a.town||a.village?', '+(a.city||a.town||a.village):'')+
+          (a.country?', '+a.country:'');
+        CU_GPS.locationName=locationName.trim().replace(/^,\s*/,'').replace(/,\s*,/g,',') || (lat+', '+lng);
+        toast('📍 '+CU_GPS.locationName,'success');
+        if(callback)callback(CU_GPS);
+      })
+      .catch(()=>{
+        CU_GPS.locationName=lat+', '+lng;
+        toast('📍 GPS captured (±'+acc+'m)','success');
+        if(callback)callback(CU_GPS);
+      });
+    },
     err=>{const msgs={1:'GPS access denied.',2:'GPS unavailable.',3:'GPS timeout.'};toast('⚠ '+(msgs[err.code]||'GPS error.'),'warning');if(callback)callback(null);},
-    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
 
-// ================================================================
-// HEADER
-// ================================================================
 function renderHeader(tid){
   const rc={supervisor:'#F59E0B',pic:'#3B82F6',ehs:'#22C55E',pm:'#A855F7',admin:'#1E3A6E',project_admin:'#0D9488'};
-  const rl={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
+  const rl={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS Safety Coordinator',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
   const col=rc[CU.role]||'#9CA3AF';
   document.getElementById(tid).innerHTML=`
   <header class="app-header">
@@ -1035,77 +1057,70 @@ function autoSync(){
 }
 function silentSync(){
   try{
-    const script=document.createElement('script');
+    const s=document.createElement('script');
     window.__silentSync=function(data){
+      try{document.head.removeChild(s);}catch(e){}
+      delete window.__silentSync;
       if(Array.isArray(data)){
-        // Validate records have proper IDs
-        const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-'));
+        const valid=data.filter(r=>r.id&&String(r.id).startsWith('BOSH-'));
         if(valid.length>0){
-          // Preserve local signatures
           const local=DB.getPTWsLocal();
           const merged=valid.map(remote=>{
             const loc=local.find(l=>l.id===remote.id);
             if(loc&&loc.stages)Object.keys(loc.stages).forEach(k=>{
-              if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){
+              if(loc.stages[k]&&loc.stages[k].signature&&loc.stages[k].signature!=='[sig]'){
                 if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;
               }
             });
             return remote;
           });
-          // Google Sheets is the truth — overwrite localStorage
-          DB.savePTWs(merged);
-          renderDashboard();
+          DB.savePTWs(merged);renderDashboard();
         } else if(valid.length===0&&data.length===0){
-          // Sheets is empty — clear localStorage too
-          DB.savePTWs([]);
-          renderDashboard();
+          DB.savePTWs([]);renderDashboard();
         }
       }
-      try{document.head.removeChild(script);}catch(e){}delete window.__silentSync;
     };
-    script.onerror=()=>{try{document.head.removeChild(script);}catch(e){}};
-    script.src=APP_CONFIG.sheetsURL+'?callback=__silentSync&t='+Date.now();
-    document.head.appendChild(script);
+    s.onerror=function(){try{document.head.removeChild(s);}catch(e){}delete window.__silentSync;};
+    s.src=APP_CONFIG.sheetsURL+'?callback=__silentSync&t='+Date.now();
+    document.head.appendChild(s);
   }catch(e){}
 }
+
 function syncFromSheets(){
   toast('🔄 Syncing from Google Sheets...','info');
-  const script=document.createElement('script');
+  const s=document.createElement('script');
   window.__ptwSync=function(data){
+    try{document.head.removeChild(s);}catch(e){}
+    delete window.__ptwSync;
     if(Array.isArray(data)&&data.length>0){
-      // Safety check: validate records have proper IDs
-      const valid=data.filter(r=>r.id&&r.id.toString().startsWith('BOSH-'));
-      if(valid.length===0){toast('⚠️ Sync skipped — invalid data received. Your records are safe.','warning');return;}
+      const valid=data.filter(r=>r.id&&String(r.id).startsWith('BOSH-'));
+      if(valid.length===0){toast('⚠️ Sync skipped — invalid data. Records safe.','warning');return;}
       const local=DB.getPTWsLocal();
       const merged=valid.map(remote=>{
         const loc=local.find(l=>l.id===remote.id);
         if(loc&&loc.stages)Object.keys(loc.stages).forEach(k=>{
-          if(loc.stages[k]?.signature&&loc.stages[k].signature!=='[sig]'){
+          if(loc.stages[k]&&loc.stages[k].signature&&loc.stages[k].signature!=='[sig]'){
             if(remote.stages&&remote.stages[k])remote.stages[k].signature=loc.stages[k].signature;
           }
         });
         return remote;
       });
-      // Keep local records that are not in Sheets yet
-      local.forEach(loc=>{if(!merged.find(m=>m.id===loc.id))merged.push(loc);});
       DB.savePTWs(merged);
-      toast('✅ Synced '+merged.length+' PTW(s) successfully!','success');
+      toast('✅ Synced '+merged.length+' PTW(s)!','success');
       renderDashboard();
-    }else if(Array.isArray(data)&&data.length===0){
-      toast('⚠️ Google Sheets is empty. Your local records are kept safe.','warning');
-    }else{
-      toast('⚠️ Sync failed — unexpected data. Your records are safe.','warning');
+    } else if(Array.isArray(data)&&data.length===0){
+      DB.savePTWs([]);
+      toast('✅ Synced — Sheets is empty','info');
+      renderDashboard();
+    } else {
+      toast('⚠️ Sync failed — unexpected data','warning');
     }
-    document.head.removeChild(script);delete window.__ptwSync;
   };
-  script.onerror=()=>toast('❌ Sync failed. Check connection.','error');
-  script.src=APP_CONFIG.sheetsURL+'?callback=__ptwSync&t='+Date.now();
-  document.head.appendChild(script);
+  s.onerror=function(){toast('❌ Sync failed — check connection','error');};
+  s.src=APP_CONFIG.sheetsURL+'?callback=__ptwSync&t='+Date.now();
+  document.head.appendChild(s);
 }
 
-// ================================================================
-// DASHBOARD
-// ================================================================
 function isMyTask(ptw){
   const me=CU.email.toLowerCase(),r=CU.role;
   if(r==='admin')return true;
@@ -1547,7 +1562,7 @@ function renderViewPTW(){
   renderHeader('app-header-view');
   const ptw=CP;const cls=DB.getChecklists();const cl=cls[ptw.type];
   approveSig=null;closeSig2=null;
-  const steps=[{key:'supervisor',label:'Supervisor',short:'SUP'},{key:'pic',label:'Person In Charge',short:'PIC'},{key:'ehs',label:'EHS',short:'EHS'},{key:'pm',label:'Proj. Manager',short:'PM'},{key:'close',label:'Closed',short:'✓'}];
+  const steps=[{key:'supervisor',label:'Supervisor',short:'SUP'},{key:'pic',label:'Person In Charge',short:'PIC'},{key:'ehs',label:'EHS Safety Coordinator',short:'EHS'},{key:'pm',label:'Proj. Manager',short:'PM'},{key:'close',label:'Closed',short:'✓'}];
   const stageIdx={pending_pic:1,pending_ehs:2,pending_pm:3,active:4,closed:5,rejected:-1,draft:0};
   const ci=stageIdx[ptw.status]??1;
   const timeline=steps.map((s,i)=>{
@@ -1591,11 +1606,38 @@ function renderViewPTW(){
 }
 
 function stageBlock(ptw,key,num,title){
-  const s=ptw.stages?.[key];
-  if(!s)return`<div class="stage-section" style="opacity:.4"><div class="stage-title"><span class="step-num">${num}</span>${title}<span style="font-size:10px;color:var(--text-dim);margin-left:auto;font-weight:400">Pending</span></div></div>`;
-  return`<div class="stage-section"><div class="stage-title"><span class="step-num" style="background:var(--bg);border-color:var(--success);color:var(--success)">✓</span>${title}</div>
-  <div class="sig-box"><div class="sig-img">${s.signature?`<img src="${s.signature}">`:`<span style="color:var(--text-dim);font-size:10px">Signed</span>`}</div>
-  <div class="sig-info"><div class="sig-name">${s.name||'—'}</div><div class="sig-email">${s.email||''}${s.company?` · ${s.company}`:''}</div><div class="sig-time">${fmt(s.timestamp)}</div>${s.remarks?`<div class="sig-remarks">Remarks: ${s.remarks}</div>`:''}</div></div></div>`;
+  const s=ptw.stages?ptw.stages[key]:null;
+  if(!s)return '<div class="stage-section" style="opacity:.4"><div class="stage-title"><span class="step-num">'+num+'</span>'+title+'<span style="font-size:10px;color:var(--text-dim);margin-left:auto;font-weight:400">Pending</span></div></div>';
+  // GPS location name
+  var gpsHtml='';
+  if(s.gps&&s.gps.lat){
+    var locName=s.gps.locationName||(s.gps.lat+', '+s.gps.lng);
+    var acc=s.gps.accuracy?(' <span style="color:var(--text-muted);font-weight:400">(\u00b1'+Math.round(s.gps.accuracy)+'m)</span>'):'';
+    gpsHtml='<div style="color:var(--success);font-size:11px;margin-top:6px;font-weight:600">\uD83D\uDCCD '+locName+acc+'</div>';
+  } else {
+    gpsHtml='<div style="color:#e57373;font-size:11px;margin-top:6px">\uD83D\uDCCD GPS not captured</div>';
+  }
+  // Signature display
+  var sigHtml='';
+  if(s.signature&&s.signature.startsWith('data:image')){
+    sigHtml='<img src="'+s.signature+'" style="max-width:100%;max-height:100%;object-fit:contain">';
+  } else if(s.signature&&s.signature!=='[sig]'&&s.signature.length>10){
+    sigHtml='<img src="'+s.signature+'" style="max-width:100%;max-height:100%;object-fit:contain">';
+  } else {
+    // Try load from Firebase
+    sigHtml='<div id="sig_'+ptw.id+'_'+key+'" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f0fdf4;border-radius:4px"><span style="color:#16a34a;font-size:10px;font-weight:600">&#10003; Signed</span></div>';
+
+  }
+  var remarksHtml=s.remarks?'<div class="sig-remarks">Remarks: '+s.remarks+'</div>':'';
+  return '<div class="stage-section"><div class="stage-title"><span class="step-num" style="background:var(--bg);border-color:var(--success);color:var(--success)">&#10003;</span>'+title+'</div>'+
+    '<div class="sig-box"><div class="sig-img">'+sigHtml+'</div>'+
+    '<div class="sig-info">'+
+      '<div class="sig-name">'+(s.name||'\u2014')+'</div>'+
+      '<div class="sig-email">'+(s.email||'')+(s.company?' \u00b7 '+s.company:'')+'</div>'+
+      '<div class="sig-time">'+fmt(s.timestamp)+'</div>'+
+      gpsHtml+
+      remarksHtml+
+    '</div></div></div>';
 }
 
 function actionPanel(ptw){
@@ -1680,7 +1722,7 @@ function actionPanel(ptw){
 
 function approvePanel(stageKey,label){
   let nextSel='';
-  if(stageKey==='pic'){const list=UDB.getAll().filter(u=>u.role==='ehs'&&u.active!==false);nextSel=`<div class="form-group"><label>Assign To — EHS * <span style="color:var(--danger);font-size:11px">Only this person can assess</span></label><select id="next-person-select"><option value="">-- Select EHS --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — EHS (${u.email})</option>`).join('')}</select></div>`;}
+  if(stageKey==='pic'){const list=UDB.getAll().filter(u=>u.role==='ehs'&&u.active!==false);nextSel=`<div class="form-group"><label>Assign To — EHS Safety Coordinator * <span style="color:var(--danger);font-size:11px">Only this person can assess</span></label><select id="next-person-select"><option value="">-- Select EHS --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — EHS Safety Coordinator (${u.email})</option>`).join('')}</select></div>`;}
   else if(stageKey==='ehs'){const list=UDB.getAll().filter(u=>u.role==='pm'&&u.active!==false);nextSel=`<div class="form-group"><label>Assign To — Project Manager (PM) * <span style="color:var(--danger);font-size:11px">Only this person can approve</span></label><select id="next-person-select"><option value="">-- Select PM --</option>${list.map(u=>`<option value="${u.email}" data-name="${u.name}">${u.name} — PM (${u.email})</option>`).join('')}</select></div>`;}
   return`<div class="form-card" style="border-color:var(--orange);margin-top:18px"><h3>⚡ Action Required — ${label}</h3>
   ${nextSel}
@@ -1767,8 +1809,33 @@ function doApprove(stageKey){
   ptw.stages[stageKey]={name:cleanName,email:CU.email,company:CU.company,timestamp:new Date().toISOString(),signature:approveSig,remarks,gps:stageGPS};
   if(sel&&sel.value){const nextName=sel.options[sel.selectedIndex]?.dataset?.name||'';if(stageKey==='pic')ptw.assignedEHS={email:sel.value,name:nextName};if(stageKey==='ehs')ptw.assignedPM={email:sel.value,name:nextName};}
   ptw.status=nextStatus[stageKey]||ptw.status;ptw.updatedAt=new Date().toISOString();
+  // Save signature to Google Drive via Apps Script
+  if(approveSig&&approveSig.startsWith('data:image')){
+    const sigData={
+      action:'saveSignature',
+      ptwId:ptw.id,
+      stageKey:stageKey,
+      sigBase64:approveSig,
+      userName:CU.name,
+      userEmail:CU.email
+    };
+    fetch(APP_CONFIG.sheetsURL,{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'data='+encodeURIComponent(JSON.stringify(sigData))
+    }).then(r=>r.text()).then(text=>{
+      try{
+        const res=JSON.parse(text);
+        if(res.success&&res.url){
+          // Update PTW stage with Drive URL
+          ptw.stages[stageKey].signatureUrl=res.url;
+          DB.savePTW(ptw);
+        }
+      }catch(e){}
+    }).catch(()=>{});
+  }
   DB.savePTW(ptw);approveSig=null;CP=ptw;
-  const msg={pending_ehs:'Sent to EHS for assessment.',pending_pm:'Sent to PM for approval.',active:'✅ PTW APPROVED! Work may proceed.'};
+  const msg={pending_ehs:'Sent to EHS Safety Coordinator for assessment.',pending_pm:'Sent to PM for approval.',active:'✅ PTW APPROVED! Work may proceed.'};
   toast(msg[ptw.status]||'Approved!','success');
   if(ptw.status==='active')setTimeout(()=>autoSavePDFtoDrive(ptw),1000);
   renderViewPTW();
@@ -2247,7 +2314,7 @@ function renderAdmin(){
   renderHeader('app-header-admin');
   const users=UDB.getAll();
   const roleColors={supervisor:'#F59E0B',pic:'#3B82F6',ehs:'#22C55E',pm:'#A855F7',admin:'#1E3A6E',project_admin:'#0D9488'};
-  const roleLabels={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
+  const roleLabels={supervisor:'Supervisor',pic:'Person In Charge',ehs:'EHS Safety Coordinator',pm:'Proj. Manager',admin:'Super Admin',project_admin:'Project Admin'};
   document.getElementById('admin-content').innerHTML=`
   <div class="page-title"><div><h2>⚙ Admin Panel</h2><div class="subtitle">Manage Users, Permit Types & System</div></div></div>
   <div class="form-card">
@@ -2284,7 +2351,7 @@ function renderAdmin(){
             <option value="project_admin">Project Admin</option>
             <option value="supervisor">Supervisor</option>
             <option value="pic">Person In Charge (PIC)</option>
-            <option value="ehs">EHS</option>
+            <option value="ehs">EHS Safety Coordinator</option>
             <option value="pm">Project Manager</option>
           </select>
         </div>
@@ -2904,12 +2971,9 @@ function adminSaveProject(){
   fetch(APP_CONFIG.sheetsURL,{
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'data='+encodeURIComponent(JSON.stringify({action:'saveProject',project:project,token:APP_CONFIG.token}))
-  })
-  .then(r=>r.text())
-  .then(text=>{
-    let result;
-    try{result=JSON.parse(text);}catch(e){result={success:true};}
+    body:'data='+encodeURIComponent(JSON.stringify({action:'saveProject',project:project}))
+  }).then(r=>r.text()).then(text=>{
+    let result;try{result=JSON.parse(text);}catch(e){result={success:true};}
     if(result.success){
       // Update local cache
       const projs=PDB.getAll();
@@ -2937,12 +3001,9 @@ function adminDeleteProject(id,name){
   fetch(APP_CONFIG.sheetsURL,{
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'data='+encodeURIComponent(JSON.stringify({action:'deleteProject',projectId:id,token:APP_CONFIG.token}))
-  })
-  .then(r=>r.text())
-  .then(text=>{
-    let result;
-    try{result=JSON.parse(text);}catch(e){result={success:true};}
+    body:'data='+encodeURIComponent(JSON.stringify({action:'deleteProject',projectId:id}))
+  }).then(r=>r.text()).then(text=>{
+    let result;try{result=JSON.parse(text);}catch(e){result={success:true};}
     if(result.success){
       // Update local cache
       const projs=PDB.getAll().filter(p=>p.id!==id);
